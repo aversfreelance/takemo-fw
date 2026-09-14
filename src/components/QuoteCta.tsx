@@ -13,7 +13,7 @@ export function QuoteCta() {
         </p>
         <Link
           to="/start"
-          className="mt-10 inline-flex h-12 items-center bg-[#ffd24a] px-10 text-sm font-extrabold uppercase tracking-[0.08em] text-ink transition hover:-translate-y-1"
+          className="mt-10 inline-flex h-12 items-center rounded-[6px] bg-[#ffd24a] px-10 text-sm font-extrabold uppercase tracking-[0.08em] text-ink transition hover:-translate-y-1"
         >
           {copy.quoteBtn}
         </Link>

@@ -12,7 +12,11 @@ export function Footer() {
       <div className="page-wrap grid gap-10 py-16 md:grid-cols-3">
         <div>
           <Logo footer />
-          <p className="mt-4 max-w-xs text-sm leading-6 text-ink">{copy.footerTag}</p>
+          <p className="mt-4 max-w-xs text-sm font-bold leading-6 text-ink">
+            Based in the United Kingdom
+            <br />
+            Providing services worldwide
+          </p>
           <div className="mt-5">
             <LangSwitch />
           </div>
@@ -25,9 +29,6 @@ export function Footer() {
                 {company.email}
               </a>
             </li>
-            <li>{company.office}</li>
-            <li>{copy.footerAlso}</li>
-            <li>{copy.footerHours}</li>
           </ul>
         </div>
         <div>
