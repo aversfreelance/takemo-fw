@@ -407,7 +407,22 @@ body {
   inset: 0;
   z-index: 0;
   background: #ffd24a;
-  opacity: calc(1 - var(--hero-p, 0));
+  opacity: calc(1 - var(--hero-y, 0));
+}
+
+html.is-hero-lift .hero-stage,
+html.is-hero-lift .site-header {
+  animation: yellow-lift 0.55s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes yellow-lift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16vh);
+  }
 }
 
 .hero-copy {

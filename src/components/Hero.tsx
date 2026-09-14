@@ -169,6 +169,7 @@ export function Hero() {
   const [phase, setPhase] = useState<Phase>('enter')
   const [cycle, setCycle] = useState(0)
   const [trace, setTrace] = useState({ w: 0, h: 0 })
+  const [yellowLift, setYellowLift] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -182,18 +183,25 @@ export function Hero() {
     }
 
     setPhase('enter')
+    setYellowLift(false)
     later(4900, () => setPhase('trace'))
     later(7500, () => setPhase('flip'))
     later(10900, () => setPhase('pop'))
     later(11380, () => setPhase('hold'))
-    later(15380, () => setPhase('out'))
-    later(16680, () => setCycle((n) => n + 1))
+    later(15380, () => setYellowLift(true))
+    later(17380, () => setPhase('out'))
+    later(18680, () => setCycle((n) => n + 1))
 
     return () => {
       cancelled = true
       timers.forEach(clearTimeout)
     }
   }, [cycle, locale])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('is-hero-lift', yellowLift)
+    return () => document.documentElement.classList.remove('is-hero-lift')
+  }, [yellowLift])
 
   useEffect(() => {
     const node = titleRef.current
@@ -215,8 +223,11 @@ export function Hero() {
 
     const update = () => {
       const fadeOver = Math.max(window.innerHeight * 0.75, 1)
+      const yellowOver = Math.max(window.innerHeight * 1.8, 1)
       const next = Math.min(1, Math.max(0, window.scrollY / fadeOver))
+      const yellow = Math.min(1, Math.max(0, window.scrollY / yellowOver))
       node?.style.setProperty('--hero-p', String(next))
+      node?.style.setProperty('--hero-y', String(yellow))
     }
 
     const onScroll = () => {
@@ -235,7 +246,11 @@ export function Hero() {
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden" style={{ '--hero-p': 0 } as CSSProperties}>
+    <section
+      ref={sectionRef}
+      className="hero-stage relative overflow-hidden"
+      style={{ '--hero-p': 0, '--hero-y': 0 } as CSSProperties}
+    >
       <div className="hero-yellow" aria-hidden />
       <HeroWipe key={`${locale}-${cycle}`} />
       <div className="relative z-[1] flex min-h-[100svh] flex-col items-center justify-center px-4 text-center">

@@ -26,7 +26,7 @@ export function Header() {
 
   return (
     <>
-      <header className="absolute inset-x-0 top-0 z-50">
+      <header className="site-header absolute inset-x-0 top-0 z-50">
         <div className="page-wrap flex items-center justify-between py-5">
           <Logo />
           <nav className="hidden items-center gap-5 xl:flex">
