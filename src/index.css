@@ -903,17 +903,8 @@ body {
   visibility: hidden;
 }
 
-.essay-flip {
-  perspective: 1100px;
-}
-
-.essay-line {
-  display: block;
-}
-
-.essay-flip.is-flip .essay-line {
-  animation: line-in 0.22s ease-out both;
-  animation-delay: calc(var(--i) * 0.04s);
+.essay-flip.is-flip {
+  animation: line-in 0.28s ease-out both;
 }
 
 @keyframes line-in {
