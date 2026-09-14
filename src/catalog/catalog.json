@@ -1,0 +1,114 @@
+{
+  "version": 4,
+  "currency": "GBP",
+  "vatRate": 0.2,
+  "vatRateHuf": 0.27,
+  "depositRate": 0.2,
+  "sites": [
+    {
+      "id": "simple",
+      "price": 54900,
+      "priceHuf": 229000,
+      "includes": ["contact"],
+      "tone": 0
+    },
+    {
+      "id": "booking",
+      "price": 89900,
+      "priceHuf": 429000,
+      "includes": ["contact", "booking"],
+      "tone": 2
+    },
+    {
+      "id": "shop",
+      "price": 149000,
+      "priceHuf": 569000,
+      "includes": ["contact", "payment", "inventory", "invoice"],
+      "tone": 3
+    },
+    {
+      "id": "media",
+      "price": 169000,
+      "priceHuf": 629000,
+      "includes": ["contact", "users", "cms"],
+      "tone": 4
+    }
+  ],
+  "care": [
+    {
+      "id": "care-2",
+      "hours": 2,
+      "responseHours": 48,
+      "monthly": 3900,
+      "yearly": 42120,
+      "monthlyHuf": 24900,
+      "yearlyHuf": 268920,
+      "tone": 0
+    },
+    {
+      "id": "care-10",
+      "hours": 10,
+      "responseHours": 24,
+      "monthly": 18900,
+      "yearly": 204120,
+      "monthlyHuf": 99000,
+      "yearlyHuf": 1069200,
+      "tone": 3
+    },
+    {
+      "id": "care-30",
+      "hours": 30,
+      "responseHours": 2,
+      "monthly": 49900,
+      "yearly": 538920,
+      "monthlyHuf": 249000,
+      "yearlyHuf": 2689200,
+      "tone": 2
+    }
+  ],
+  "groups": [
+    {
+      "id": "design",
+      "items": [
+        { "id": "graphic-design", "price": 14900, "priceHuf": 49000 },
+        { "id": "logo", "price": 11900, "priceHuf": 39000 }
+      ]
+    },
+    {
+      "id": "web",
+      "items": [
+        { "id": "contact", "price": 3900, "priceHuf": 9900 },
+        { "id": "users", "price": 9900, "priceHuf": 29000 },
+        { "id": "cms", "price": 16900, "priceHuf": 49000 },
+        { "id": "google-login", "price": 4900, "priceHuf": 14900 },
+        { "id": "facebook-login", "price": 4900, "priceHuf": 14900 },
+        { "id": "facebook-post", "price": 6900, "priceHuf": 19900 },
+        { "id": "instagram-post", "price": 6900, "priceHuf": 19900 },
+        { "id": "booking", "price": 12900, "priceHuf": 39000 },
+        { "id": "payment", "price": 14900, "priceHuf": 39000 },
+        { "id": "inventory", "price": 9900, "priceHuf": 29000 },
+        { "id": "invoice", "price": 7900, "priceHuf": 19900 },
+        { "id": "tracking", "price": 8900, "priceHuf": 24900 },
+        { "id": "newsletter", "price": 5900, "priceHuf": 14900 },
+        { "id": "i18n", "price": 7900, "priceHuf": 24900 },
+        { "id": "chat", "price": 4900, "priceHuf": 9900 },
+        { "id": "reviews", "price": 3900, "priceHuf": 9900 },
+        { "id": "whatsapp", "price": 1900, "priceHuf": 4900 },
+        { "id": "blog", "price": 5900, "priceHuf": 14900 },
+        { "id": "map", "price": 1900, "priceHuf": 4900 },
+        { "id": "gdpr", "price": 3900, "priceHuf": 9900 }
+      ]
+    },
+    {
+      "id": "setup",
+      "items": [
+        { "id": "banners", "price": 3900, "priceHuf": 9900 },
+        { "id": "google-seo", "price": 7900, "priceHuf": 24900 },
+        { "id": "bing-seo", "price": 3900, "priceHuf": 9900 },
+        { "id": "analytics", "price": 2900, "priceHuf": 7900 },
+        { "id": "adsense", "price": 3900, "priceHuf": 9900 },
+        { "id": "search-console", "price": 1900, "priceHuf": 4900 }
+      ]
+    }
+  ]
+}
