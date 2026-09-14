@@ -12,7 +12,7 @@ export function Footer() {
       <div className="page-wrap grid gap-10 py-16 md:grid-cols-3">
         <div>
           <Logo footer />
-          <p className="mt-4 max-w-xs text-sm font-bold leading-6 text-ink">
+          <p className="mt-4 max-w-xs text-lg font-bold leading-7 text-ink">
             Based in the United Kingdom
             <br />
             Providing services worldwide

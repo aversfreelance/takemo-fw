@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocale } from '../i18n/locale'
 
-type Phase = 'enter' | 'trace' | 'flip' | 'hold' | 'out'
+type Phase = 'enter' | 'trace' | 'flip' | 'pop' | 'hold' | 'out'
 type FlipChar = {
   ch: string
   accent: boolean
@@ -81,6 +81,82 @@ function keepPhrasesTogether(words: FlipWord[]) {
   return out
 }
 
+const TILE = 30
+const WIPE_IN = 700
+const WIPE_HOLD = 1500
+const TILE_FLIP = 180
+const TILE_STEP = 10
+
+function HeroWipe() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+
+    const start = performance.now()
+    let frame = 0
+
+    const size = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    size()
+
+    const square = (col: number, row: number, s = 1) => {
+      const sizePx = TILE * s
+      ctx.fillRect(col * TILE + (TILE - sizePx) / 2, row * TILE + (TILE - sizePx) / 2, sizePx, sizePx)
+    }
+
+    const draw = (now: number) => {
+      const t = now - start
+      const w = canvas.width
+      const h = canvas.height
+      const cols = Math.ceil(w / TILE)
+      const rows = Math.ceil(h / TILE)
+      ctx.clearRect(0, 0, w, h)
+      ctx.fillStyle = '#ee1c25'
+
+      if (t < WIPE_IN) {
+        ctx.globalAlpha = Math.min(1, t / WIPE_IN)
+        ctx.fillRect(0, 0, w, h)
+        ctx.globalAlpha = 1
+        frame = requestAnimationFrame(draw)
+        return
+      }
+
+      if (t < WIPE_IN + WIPE_HOLD) {
+        ctx.fillRect(0, 0, w, h)
+        frame = requestAnimationFrame(draw)
+        return
+      }
+
+      const flipT = t - WIPE_IN - WIPE_HOLD
+      let done = true
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const delay = (cols - 1 - col + (rows - 1 - row)) * TILE_STEP
+          const local = (flipT - delay) / TILE_FLIP
+          if (local < 0) {
+            square(col, row)
+            done = false
+          } else if (local < 1) {
+            square(col, row, 1 - local)
+            done = false
+          }
+        }
+      }
+      if (!done) frame = requestAnimationFrame(draw)
+    }
+
+    frame = requestAnimationFrame(draw)
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  return <canvas ref={canvasRef} className="hero-wipe" aria-hidden />
+}
+
 export function Hero() {
   const { copy, locale } = useLocale()
   const chars = useMemo(
@@ -107,10 +183,11 @@ export function Hero() {
 
     setPhase('enter')
     later(4900, () => setPhase('trace'))
-    later(8900, () => setPhase('flip'))
-    later(11300, () => setPhase('hold'))
-    later(15300, () => setPhase('out'))
-    later(16600, () => setCycle((n) => n + 1))
+    later(7500, () => setPhase('flip'))
+    later(10900, () => setPhase('pop'))
+    later(11380, () => setPhase('hold'))
+    later(15380, () => setPhase('out'))
+    later(16680, () => setCycle((n) => n + 1))
 
     return () => {
       cancelled = true
@@ -160,7 +237,7 @@ export function Hero() {
   return (
     <section ref={sectionRef} className="relative overflow-hidden" style={{ '--hero-p': 0 } as CSSProperties}>
       <div className="hero-yellow" aria-hidden />
-      <div key={`${locale}-${cycle}`} className="hero-wipe" />
+      <HeroWipe key={`${locale}-${cycle}`} />
       <div className="relative z-[1] flex min-h-[100svh] flex-col items-center justify-center px-4 text-center">
         <h1
           key={`${locale}-${cycle}`}
