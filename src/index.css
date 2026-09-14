@@ -846,7 +846,7 @@ html.is-hero-lift .site-header {
 }
 
 .punch-cell {
-  min-height: 22vh;
+  min-height: 16vh;
   display: grid;
   place-items: center;
   padding: 1.6rem 1.2rem;
@@ -854,30 +854,17 @@ html.is-hero-lift .site-header {
   border-bottom: 3px solid #1c1f2a;
 }
 
-.punch-left,
-.punch-right {
-  background: #fff;
-  color: #1c1f2a;
-  transition:
-    background 0.16s ease,
-    color 0.16s ease;
-}
-
-.punch.is-left .punch-left {
+.punch-left {
   background: #ee1c25;
   color: #fff;
 }
 
-.punch.is-right .punch-right {
+.punch-right {
   background: #15803d;
   color: #fff;
 }
 
 .punch-note {
-  color: #1c1f2a;
-}
-
-.punch.is-right .punch-note {
   color: #ffd24a;
 }
 
@@ -939,7 +926,7 @@ html.is-hero-lift .site-header {
   }
 
   .punch-cell {
-    min-height: 26vh;
+    min-height: 18vh;
     border-bottom: 0;
   }
 

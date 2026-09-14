@@ -176,7 +176,7 @@ export function Hero() {
   useEffect(() => {
     const node = sectionRef.current
     if (!node) return
-    return watchArrived(node, () => setLive(true), { hero: true })
+    return watchArrived(node, () => setLive(true))
   }, [])
 
   useEffect(() => {

@@ -1,23 +1,13 @@
-type ArriveOpts = {
-  hero?: boolean
-}
-
-export function hasArrived(node: Element, opts: ArriveOpts = {}) {
+export function hasArrived(node: Element) {
   const box = node.getBoundingClientRect()
   const vh = window.innerHeight
-
-  if (opts.hero) {
-    return box.top < vh * 0.25 && box.bottom > vh * 0.2
-  }
-
-  if (window.scrollY < vh * 0.6) return false
-  return box.top < vh * 0.3 && box.bottom > 80
+  return box.top < vh && box.bottom > 0
 }
 
-export function watchArrived(node: Element, onArrive: () => void, opts: ArriveOpts = {}) {
+export function watchArrived(node: Element, onArrive: () => void) {
   let done = false
   const check = () => {
-    if (done || !hasArrived(node, opts)) return
+    if (done || !hasArrived(node)) return
     done = true
     onArrive()
     window.removeEventListener('scroll', check)
