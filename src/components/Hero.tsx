@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocale } from '../i18n/locale'
+import { watchArrived } from '../lib/whenArrived'
 
 type Phase = 'enter' | 'trace' | 'flip' | 'pop' | 'hold' | 'out'
 type FlipChar = {
@@ -170,8 +171,16 @@ export function Hero() {
   const [cycle, setCycle] = useState(0)
   const [trace, setTrace] = useState({ w: 0, h: 0 })
   const [yellowLift, setYellowLift] = useState(false)
+  const [live, setLive] = useState(false)
 
   useEffect(() => {
+    const node = sectionRef.current
+    if (!node) return
+    return watchArrived(node, () => setLive(true), { hero: true })
+  }, [])
+
+  useEffect(() => {
+    if (!live) return
     let cancelled = false
     const timers: number[] = []
     const later = (ms: number, fn: () => void) => {
@@ -196,7 +205,7 @@ export function Hero() {
       cancelled = true
       timers.forEach(clearTimeout)
     }
-  }, [cycle, locale])
+  }, [cycle, locale, live])
 
   useEffect(() => {
     document.documentElement.classList.toggle('is-hero-lift', yellowLift)
@@ -248,11 +257,11 @@ export function Hero() {
   return (
     <section
       ref={sectionRef}
-      className="hero-stage relative overflow-hidden"
+      className={`hero-stage relative overflow-hidden${live ? ' is-live' : ''}`}
       style={{ '--hero-p': 0, '--hero-y': 0 } as CSSProperties}
     >
       <div className="hero-yellow" aria-hidden />
-      <HeroWipe key={`${locale}-${cycle}`} />
+      {live ? <HeroWipe key={`${locale}-${cycle}`} /> : null}
       <div className="relative z-[1] flex min-h-[100svh] flex-col items-center justify-center px-4 text-center">
         <h1
           key={`${locale}-${cycle}`}

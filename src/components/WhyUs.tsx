@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { reasons, stats } from '../data'
+import { watchArrived } from '../lib/whenArrived'
 import { Reveal } from './Reveal'
 
 function useCountUp(target: number, active: boolean) {
@@ -44,14 +45,7 @@ export function WhyUs() {
   useEffect(() => {
     const node = ref.current
     if (!node) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setActive(true)
-      },
-      { threshold: 0.3 },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
+    return watchArrived(node, () => setActive(true))
   }, [])
 
   return (

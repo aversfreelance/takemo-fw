@@ -46,7 +46,7 @@ export type Copy = {
   quoteBtn: string
   formHint: string[]
   more: string
-  journey: { n: string; label: string }[]
+  journey: { n: string; label: string; text: string }[]
   channels: string[]
   helpCards: { title: string; text: string; href: string }[]
   workSteps: { n: string; title: string; text: string }[]
@@ -169,11 +169,27 @@ export const copies: Record<Locale, Copy> = {
     ],
     more: 'Tovább',
     journey: [
-      { n: '01', label: 'Üzenet' },
-      { n: '02', label: 'Adatfelvétel' },
-      { n: '03', label: 'Modulok' },
-      { n: '04', label: 'Áttekintés' },
-      { n: '05', label: 'Megrendelés' },
+      {
+        n: '01',
+        label: 'Üzenet',
+        text: 'Megírja nekünk, hogy milyen weblapot vagy online megoldást szeretne és mi válaszban elküldjük, hogy milyen határidővel tudjuk vállalni.',
+      },
+      {
+        n: '02',
+        label: 'Adatfelvétel',
+        text: 'Megírja nekünk az adatokat, azt, hogy mit szeretne látni az oldalon',
+      },
+      {
+        n: '03',
+        label: 'Modulok',
+        text: 'Kiválasztja, hogy milyen extrákat szeretne az oldalon',
+      },
+      {
+        n: '04',
+        label: 'Áttekintés',
+        text: 'Véglegesítjük az oldal formáját',
+      },
+      { n: '05', label: 'Megrendelés', text: '' },
     ],
     channels: ['Messenger', 'WhatsApp', 'iMessage', 'Facebook', 'Instagram', 'TikTok', 'YouTube', 'E-mail', 'Honlap'],
     helpCards: [
@@ -307,11 +323,27 @@ export const copies: Record<Locale, Copy> = {
     ],
     more: 'See more',
     journey: [
-      { n: '01', label: 'Message' },
-      { n: '02', label: 'Your details' },
-      { n: '03', label: 'Modules' },
-      { n: '04', label: 'Overview' },
-      { n: '05', label: 'Order' },
+      {
+        n: '01',
+        label: 'Message',
+        text: 'You tell us what kind of website or online solution you want, and we reply with the deadline we can take on.',
+      },
+      {
+        n: '02',
+        label: 'Your details',
+        text: 'You send us the details, and what you want to see on the site.',
+      },
+      {
+        n: '03',
+        label: 'Modules',
+        text: 'You choose what extras you want on the site.',
+      },
+      {
+        n: '04',
+        label: 'Overview',
+        text: 'We finalise the shape of the site.',
+      },
+      { n: '05', label: 'Order', text: '' },
     ],
     channels: ['Messenger', 'WhatsApp', 'iMessage', 'Facebook', 'Instagram', 'TikTok', 'YouTube', 'Email', 'Website'],
     helpCards: [

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { watchArrived } from '../lib/whenArrived'
 import { RichText } from './RichText'
 
 const queue: Array<() => void> = []
@@ -24,21 +25,13 @@ export function FlipRun({ text, rich = false, as: Tag }: { text: string; rich?: 
   useEffect(() => {
     const node = ref.current
     if (!node) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          observer.disconnect()
-          queue.push(() => {
-            setOn(true)
-            window.setTimeout(release, 320)
-          })
-          runNext()
-        }
-      },
-      { threshold: 0.2 },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
+    return watchArrived(node, () => {
+      queue.push(() => {
+        setOn(true)
+        window.setTimeout(release, 320)
+      })
+      runNext()
+    })
   }, [])
 
   return (

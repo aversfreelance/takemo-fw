@@ -1,4 +1,5 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { watchArrived } from '../lib/whenArrived'
 
 type Props = {
   children: ReactNode
@@ -13,17 +14,7 @@ export function Reveal({ children, className = '', delay = 0, variant = 'up' }: 
   useEffect(() => {
     const node = ref.current
     if (!node) return
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          node.classList.add('is-in')
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.16 },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
+    return watchArrived(node, () => node.classList.add('is-in'))
   }, [])
 
   return (
