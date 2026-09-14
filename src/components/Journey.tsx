@@ -15,6 +15,11 @@ export function Journey() {
   return (
     <section className="overflow-hidden bg-wash py-24" id="journey">
       <div className="page-wrap">
+        <Reveal variant="left">
+          <p className="mb-8 text-left text-[clamp(1.4rem,3vw,2.4rem)] font-extrabold uppercase leading-[1.1] tracking-[0.04em] text-ink">
+            {copy.journeyLine}
+          </p>
+        </Reveal>
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {copy.journey.map((item, index) => (
             <Reveal key={item.n} delay={index * 80} variant="zoom">

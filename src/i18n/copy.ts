@@ -54,6 +54,9 @@ export type Copy = {
   payLater: string
   payNowNote: string
   payLaterNote: string
+  payLine: string
+  helpLine: string
+  journeyLine: string
   workTitle: string
   punchLeft: string
   punchRight: string
@@ -191,6 +194,9 @@ export const copies: Record<Locale, Copy> = {
     payLater: '80%',
     payNowNote: 'Szerződéskor. Domain, tárhely, a munka elindul.',
     payLaterNote: 'Amikor átadjuk, és használható.',
+    payLine: 'NEM KELL EGYBEN KIFIZETNIE',
+    helpLine: 'TÖBB MEGOLDÁS KÖZÜL IS VÁLASZTHAT',
+    journeyLine: 'AZ EGÉSZ FOLYAMATOT KÖVETHETI',
     workTitle: 'Hogyan dolgozunk',
     punchLeft: 'Egy honlap',
     punchRight: 'Online jelenlét',
@@ -326,6 +332,9 @@ export const copies: Record<Locale, Copy> = {
     payLater: '80%',
     payNowNote: 'When we start. Domain, hosting, the work begins.',
     payLaterNote: 'When we hand it over, and you can use it.',
+    payLine: "YOU DON'T HAVE TO PAY ALL AT ONCE",
+    helpLine: 'YOU CAN CHOOSE FROM SEVERAL OPTIONS',
+    journeyLine: 'YOU CAN FOLLOW THE WHOLE PROCESS',
     workTitle: 'How we work',
     punchLeft: 'A website',
     punchRight: 'Online presence',

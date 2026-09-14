@@ -8,6 +8,11 @@ export function HelpGrid() {
   return (
     <section className="bg-white py-24" id="help">
       <div className="page-wrap">
+        <Reveal variant="left">
+          <p className="mb-8 text-left text-[clamp(1.4rem,3vw,2.4rem)] font-extrabold uppercase leading-[1.1] tracking-[0.04em] text-ink">
+            {copy.helpLine}
+          </p>
+        </Reveal>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {copy.helpCards.map((card, index) => (
             <Reveal key={card.title} delay={index * 70} variant="zoom" className="h-full">

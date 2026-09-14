@@ -9,6 +9,11 @@ export function PaySplit({ bare = false }: { bare?: boolean }) {
   return (
     <section className="overflow-x-hidden bg-ink py-24 text-white" id="modules">
       <div className="page-wrap">
+        <Reveal variant="left">
+          <p className="mb-8 text-left text-[clamp(1.4rem,3vw,2.4rem)] font-extrabold uppercase leading-[1.1] tracking-[0.04em]">
+            {copy.payLine}
+          </p>
+        </Reveal>
         {bare ? null : (
           <Reveal>
             <p className="mb-4 text-sm font-extrabold tracking-[0.22em] text-[#ffd24a]">{chapter.kicker}</p>
