@@ -188,6 +188,18 @@ body {
   position: relative;
   perspective: 1400px;
   transform-style: preserve-3d;
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.flip-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.flip-gap {
+  display: inline;
 }
 
 .hero-trace {
@@ -788,6 +800,18 @@ body {
   line-height: 0.9;
 }
 
+@media (max-width: 767px) {
+  .pay-num {
+    font-size: clamp(2.4rem, 22cqi, 4rem);
+  }
+
+  .pay-block-sm {
+    width: 100%;
+    min-height: 168px;
+    padding-block: 1.35rem;
+  }
+}
+
 .giant-line {
   font-size: clamp(2.4rem, 7vw, 6.5rem);
   font-weight: 800;
@@ -887,7 +911,9 @@ body {
   font-weight: 400;
   line-height: 1.7;
   text-wrap: pretty;
-  hyphens: auto;
+  hyphens: none;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .essay-sheet p:last-child {

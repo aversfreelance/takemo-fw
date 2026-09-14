@@ -12,12 +12,11 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null)
 
-function guessFromDevice(): Locale {
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  if (zone === 'Europe/Budapest') return 'hu'
-  const lang = navigator.language.toLowerCase()
-  if (lang.startsWith('hu')) return 'hu'
-  return 'en'
+function localeFromHost(host = window.location.hostname): Locale | null {
+  const name = host.toLowerCase()
+  if (name === 'hu' || name.endsWith('.hu')) return 'hu'
+  if (name.endsWith('.co.uk')) return 'en'
+  return null
 }
 
 function readSaved(): Locale | null {
@@ -25,48 +24,16 @@ function readSaved(): Locale | null {
   return saved === 'hu' || saved === 'en' ? saved : null
 }
 
-async function countryFromIp(): Promise<string | null> {
-  const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), 2500)
-  try {
-    const res = await fetch('https://ipwho.is/?fields=success,country_code', { signal: controller.signal })
-    const data = (await res.json()) as { success?: boolean; country_code?: string }
-    if (data.success && data.country_code) return data.country_code.toUpperCase()
-  } catch {
-    try {
-      const res = await fetch('https://get.geojs.io/v1/ip/country.json', { signal: controller.signal })
-      const data = (await res.json()) as { country?: string }
-      if (data.country) return data.country.toUpperCase()
-    } catch {
-      return null
-    }
-  } finally {
-    window.clearTimeout(timer)
-  }
-  return null
+function initialLocale(): Locale {
+  return localeFromHost() ?? readSaved() ?? 'en'
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => readSaved() ?? guessFromDevice())
-  const [ready, setReady] = useState(() => Boolean(readSaved()))
+  const [locale, setLocaleState] = useState<Locale>(initialLocale)
 
   useEffect(() => {
-    if (readSaved()) {
-      setReady(true)
-      return
-    }
-
-    let cancelled = false
-    countryFromIp().then((country) => {
-      if (cancelled || readSaved()) return
-      if (country === 'HU') setLocaleState('hu')
-      else if (country) setLocaleState('en')
-      setReady(true)
-    })
-
-    return () => {
-      cancelled = true
-    }
+    const fromHost = localeFromHost()
+    if (fromHost) setLocaleState(fromHost)
   }, [])
 
   useEffect(() => {
@@ -77,14 +44,13 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [locale])
 
   const setLocale = (next: Locale) => {
-    localStorage.setItem(STORAGE_KEY, next)
+    if (!localeFromHost()) localStorage.setItem(STORAGE_KEY, next)
     setLocaleState(next)
-    setReady(true)
   }
 
   const value = useMemo(
-    () => ({ locale, copy: copies[locale], setLocale, ready }),
-    [locale, ready],
+    () => ({ locale, copy: copies[locale], setLocale, ready: true }),
+    [locale],
   )
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>

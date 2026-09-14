@@ -158,7 +158,7 @@ export const copies: Record<Locale, Copy> = {
     reject: 'Elutasít',
     customise: 'Módosítás',
     less: 'Kevesebb',
-    quoteBtn: 'Ajánlatot kérek',
+    quoteBtn: 'Üzenet',
     formHint: [
       'Van már honlapja, domainje vagy e-mailje?',
       'Honlap, foglalás, webshop vagy valami más kell?',

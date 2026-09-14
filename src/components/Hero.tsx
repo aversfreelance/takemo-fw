@@ -24,12 +24,70 @@ function buildSloganChars(line1: string, line2: string, accent: string): FlipCha
   return chars
 }
 
+type FlipWord = { breakBefore?: boolean; items: { item: FlipChar; index: number }[] }
+
+const KEEP_TOGETHER = [
+  ['show', 'up.'],
+  ['Be', 'seen'],
+  ['Légy', 'látható'],
+]
+
+function groupWords(chars: FlipChar[]) {
+  const words: FlipWord[] = []
+  let current: FlipWord = { items: [] }
+  chars.forEach((item, index) => {
+    if (item.breakBefore) {
+      if (current.items.length) words.push(current)
+      current = { items: [], breakBefore: true }
+    }
+    if (item.ch === ' ') {
+      if (current.items.length) words.push(current)
+      words.push({ breakBefore: current.breakBefore, items: [{ item, index }] })
+      current = { items: [] }
+      return
+    }
+    current.items.push({ item, index })
+  })
+  if (current.items.length) words.push(current)
+  return keepPhrasesTogether(words)
+}
+
+function wordText(word: FlipWord) {
+  return word.items.map(({ item }) => item.ch).join('')
+}
+
+function keepPhrasesTogether(words: FlipWord[]) {
+  const out: FlipWord[] = []
+  for (let i = 0; i < words.length; i++) {
+    const match = KEEP_TOGETHER.find(([first]) => first === wordText(words[i]))
+    const gap = words[i + 1]
+    const next = words[i + 2]
+    if (
+      match &&
+      gap?.items.length === 1 &&
+      gap.items[0]?.item.ch === ' ' &&
+      next &&
+      wordText(next) === match[1]
+    ) {
+      out.push({
+        breakBefore: words[i].breakBefore,
+        items: [...words[i].items, ...gap.items, ...next.items],
+      })
+      i += 2
+      continue
+    }
+    out.push(words[i])
+  }
+  return out
+}
+
 export function Hero() {
   const { copy, locale } = useLocale()
   const chars = useMemo(
     () => buildSloganChars(copy.slogan.line1, copy.slogan.line2, copy.slogan.accent),
     [copy.slogan],
   )
+  const words = useMemo(() => groupWords(chars), [chars])
   const sectionRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [phase, setPhase] = useState<Phase>('enter')
@@ -114,14 +172,19 @@ export function Hero() {
               <rect x="4" y="4" width={trace.w - 8} height={trace.h - 8} pathLength="100" />
             </svg>
           ) : null}
-          {chars.map((item, index) => (
-            <span key={`${locale}-${item.ch}-${index}`}>
-              {item.breakBefore ? <br /> : null}
-              <span
-                className={`flip-letter is-${item.side}${item.ch === ' ' ? ' is-space' : ''}${item.accent ? ' is-accent' : ''}`}
-                style={{ '--i': index } as CSSProperties}
-              >
-                {item.ch === ' ' ? '\u00a0' : item.ch}
+          {words.map((word, wordIndex) => (
+            <span key={`${locale}-w-${wordIndex}`}>
+              {word.breakBefore ? <br /> : null}
+              <span className={word.items[0]?.item.ch === ' ' ? 'flip-gap' : 'flip-word'}>
+                {word.items.map(({ item, index }) => (
+                  <span
+                    key={`${locale}-${index}`}
+                    className={`flip-letter is-${item.side}${item.ch === ' ' ? ' is-space' : ''}${item.accent ? ' is-accent' : ''}`}
+                    style={{ '--i': index } as CSSProperties}
+                  >
+                    {item.ch === ' ' ? '\u00a0' : item.ch}
+                  </span>
+                ))}
               </span>
             </span>
           ))}

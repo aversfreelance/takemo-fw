@@ -17,12 +17,12 @@ export function PaySplit({ bare = false }: { bare?: boolean }) {
             </h2>
           </Reveal>
         )}
-        <div className={`grid grid-cols-[minmax(0,1fr)_minmax(0,4fr)] gap-3${bare ? '' : ' mt-14'}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,4fr)] gap-3${bare ? '' : ' mt-14'}`}>
           <Reveal className="pay-slide min-w-0" variant="fade">
-            <div className="pay-block pay-from-left bg-brand">
+            <div className="pay-block pay-block-sm pay-from-left bg-brand">
               <div>
                 <p className="pay-num">{copy.payNow}</p>
-                <p className="mt-4 px-3 text-sm font-extrabold uppercase tracking-[0.16em]">{copy.payNowNote}</p>
+                <p className="pay-note mt-4 px-3 text-sm font-extrabold uppercase tracking-[0.16em]">{copy.payNowNote}</p>
               </div>
             </div>
           </Reveal>
