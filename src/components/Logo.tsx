@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 export function Logo({ light = false, footer = false }: { light?: boolean; footer?: boolean }) {
-  const src = footer || light ? '/logos/takemo-footer-logo.png' : '/logos/takemo-logo.png'
+  const src = footer ? '/logos/takemoltd.png' : light ? '/logos/takemo-footer-logo.png' : '/logos/takemo-header.png'
   const height = footer ? 'h-12 md:h-14' : 'h-11 md:h-[52px]'
 
   return (

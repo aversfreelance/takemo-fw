@@ -2,17 +2,24 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { useLocale } from '../i18n/locale'
 
+type Phase = 'enter' | 'trace' | 'flip' | 'hold' | 'out'
 type FlipChar = {
   ch: string
   accent: boolean
   breakBefore?: boolean
+  side: 'left' | 'right'
 }
 
 function buildSloganChars(line1: string, line2: string, accent: string): FlipChar[] {
   const accentFrom = line2.indexOf(accent)
-  const chars: FlipChar[] = line1.split('').map((ch) => ({ ch, accent: false }))
+  const chars: FlipChar[] = line1.split('').map((ch) => ({ ch, accent: false, side: 'left' }))
   line2.split('').forEach((ch, index) => {
-    chars.push({ ch, accent: accentFrom >= 0 && index >= accentFrom, breakBefore: index === 0 })
+    chars.push({
+      ch,
+      accent: accentFrom >= 0 && index >= accentFrom,
+      breakBefore: index === 0,
+      side: 'right',
+    })
   })
   return chars
 }
@@ -24,13 +31,48 @@ export function Hero() {
     [copy.slogan],
   )
   const sectionRef = useRef<HTMLElement>(null)
-  const [live, setLive] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const [phase, setPhase] = useState<Phase>('enter')
+  const [cycle, setCycle] = useState(0)
+  const [trace, setTrace] = useState({ w: 0, h: 0 })
 
   useEffect(() => {
-    setLive(false)
-    const readyTimer = window.setTimeout(() => setLive(true), 1200)
-    return () => window.clearTimeout(readyTimer)
-  }, [locale])
+    let cancelled = false
+    const timers: number[] = []
+    const later = (ms: number, fn: () => void) => {
+      timers.push(
+        window.setTimeout(() => {
+          if (!cancelled) fn()
+        }, ms),
+      )
+    }
+
+    setPhase('enter')
+    later(4900, () => setPhase('trace'))
+    later(8900, () => setPhase('flip'))
+    later(11300, () => setPhase('hold'))
+    later(15300, () => setPhase('out'))
+    later(16600, () => setCycle((n) => n + 1))
+
+    return () => {
+      cancelled = true
+      timers.forEach(clearTimeout)
+    }
+  }, [cycle, locale])
+
+  useEffect(() => {
+    const node = titleRef.current
+    if (!node) return
+    const measure = () => {
+      const w = node.offsetWidth + 54
+      const h = node.offsetHeight + 34
+      setTrace((prev) => (prev.w === w && prev.h === h ? prev : { w, h }))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [cycle, locale, chars])
 
   useEffect(() => {
     const node = sectionRef.current
@@ -60,18 +102,24 @@ export function Hero() {
   return (
     <section ref={sectionRef} className="relative overflow-hidden" style={{ '--hero-p': 0 } as CSSProperties}>
       <div className="hero-yellow" aria-hidden />
-      <div className="hero-wipe" />
+      <div key={`${locale}-${cycle}`} className="hero-wipe" />
       <div className="relative z-[1] flex min-h-[100svh] flex-col items-center justify-center px-4 text-center">
         <h1
-          key={locale}
-          className={`flip-stage max-w-5xl text-[clamp(32px,4.4vw,68px)] font-bold leading-[1.15] text-ink${live ? ' is-live' : ''}`}
+          key={`${locale}-${cycle}`}
+          ref={titleRef}
+          className={`flip-stage is-${phase} max-w-5xl text-[clamp(32px,4.4vw,68px)] font-bold leading-[1.15] text-ink`}
         >
+          {trace.w ? (
+            <svg className="hero-trace" viewBox={`0 0 ${trace.w} ${trace.h}`} aria-hidden>
+              <rect x="4" y="4" width={trace.w - 8} height={trace.h - 8} pathLength="100" />
+            </svg>
+          ) : null}
           {chars.map((item, index) => (
             <span key={`${locale}-${item.ch}-${index}`}>
               {item.breakBefore ? <br /> : null}
               <span
-                className={`flip-letter${item.ch === ' ' ? ' is-space' : ''}${item.accent ? ' is-accent' : ''}`}
-                style={{ '--i': index, animationDelay: `${0.18 + index * 0.024}s` } as CSSProperties}
+                className={`flip-letter is-${item.side}${item.ch === ' ' ? ' is-space' : ''}${item.accent ? ' is-accent' : ''}`}
+                style={{ '--i': index } as CSSProperties}
               >
                 {item.ch === ' ' ? '\u00a0' : item.ch}
               </span>

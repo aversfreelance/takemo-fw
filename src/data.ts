@@ -196,7 +196,7 @@ export const company = {
   brand: 'Take Mee Online',
   phoneMarketing: '+44 1643 000000',
   phoneSupport: '+44 1643 000000',
-  email: 'support@takemo.co.uk',
+  email: 'gabor.pinter@pmonline.hu',
   marketingEmail: 'hello@takemo.co.uk',
   office: 'Minehead, Somerset, United Kingdom',
   hq: 'Minehead, United Kingdom',
@@ -205,7 +205,7 @@ export const company = {
 }
 
 export const socials = [
-  { label: 'Email', href: 'mailto:support@takemo.co.uk' },
+  { label: 'Email', href: 'mailto:gabor.pinter@pmonline.hu' },
   { label: 'Facebook', href: 'https://facebook.com' },
   { label: 'Instagram', href: 'https://instagram.com' },
   { label: 'LinkedIn', href: 'https://linkedin.com' },

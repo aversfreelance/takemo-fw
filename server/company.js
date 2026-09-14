@@ -1,5 +1,5 @@
 export const company = {
   legal: 'Take Mee Online',
-  email: 'support@takemo.co.uk',
+  email: 'gabor.pinter@pmonline.hu',
   office: 'Minehead, Somerset, United Kingdom',
 }

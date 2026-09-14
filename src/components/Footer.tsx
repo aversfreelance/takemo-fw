@@ -45,8 +45,8 @@ export function Footer() {
       </div>
       <div className="border-t border-line">
         <div className="page-wrap flex flex-wrap items-center justify-between gap-3 py-5 text-xs uppercase text-muted">
-          <p>
-            © {new Date().getFullYear()} Take Mee Online. {copy.footerRights}
+          <p className="normal-case">
+            {new Date().getFullYear()} TAKEMO LTD {copy.footerRights}
           </p>
           <Link to="/privacy" className="hover:text-brand">
             {copy.privacy}

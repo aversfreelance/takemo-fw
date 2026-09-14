@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { company } from '../data'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
 import { useAuth } from '../lib/auth'
-import { MailIcon, PhoneIcon } from './Icons'
 import { LangSwitch } from './LangSwitch'
 import { Logo } from './Logo'
 
@@ -37,7 +35,7 @@ export function Header() {
                 key={link.to}
                 to={link.to}
                 className={({ isActive }) =>
-                  `text-[12px] font-bold uppercase tracking-[0.14em] transition hover:text-brand ${
+                  `text-[15px] font-bold uppercase tracking-[0.12em] transition hover:text-brand ${
                     isActive && !link.to.includes('#') ? 'text-brand' : 'text-ink'
                   }`
                 }
@@ -59,12 +57,6 @@ export function Header() {
               {user ? t.account : t.login}
             </Link>
             <LangSwitch />
-            <a href={`mailto:${company.email}`} className="icon-circle hidden sm:grid" aria-label="Email">
-              <MailIcon />
-            </a>
-            <a href={`tel:${company.phoneMarketing.replace(/\s/g, '')}`} className="icon-circle hidden sm:grid" aria-label="Phone">
-              <PhoneIcon />
-            </a>
             <button
               type="button"
               className="hamburger-btn ml-1 grid h-[56px] w-[56px] place-items-center rounded-full border border-brand bg-brand text-white"
