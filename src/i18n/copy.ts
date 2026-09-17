@@ -109,7 +109,7 @@ export const copies: Record<Locale, Copy> = {
       {
         id: 'modules',
         kicker: '03',
-        title: 'Nem kell mindent egyszerre megrendelnie',
+        title: 'Nem kell mindent egyszerre megrendelni',
         paragraphs: [
           'Szolgáltatásaink külön-külön, modulokban is kérhetők. Ha Önnek csak egy egyszerű honlapra van szüksége, nem kell fizetnie olyan funkciókért, amelyeket nem használ. Ha később szeretne hozzáadni például online foglalást, fizetést, webshopot vagy más funkciót, a rendszer bővíthető.',
           'Az áraink átláthatók. **Minden szolgáltatás annyiba kerül, amennyiért a honlapunkon kínáljuk.** A munka megkezdésekor, a szerződéskötéskor a teljes előre megbeszélt díj **20%-át** kérjük. Ez fedezi a fejlesztés induló technikai költségeit, például a domain regisztrációját, a tárhelyet, az adatbázist és a szükséges technikai szolgáltatásokat. A fennmaradó összeget akkor számlázzuk, amikor az elkészült rendszert átadjuk és üzembe helyezzük.',
