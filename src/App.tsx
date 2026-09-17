@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CookieBanner } from './components/CookieBanner'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
@@ -11,6 +11,9 @@ import { RequireAuth } from './components/RequireAuth'
 import { LocaleProvider } from './i18n/locale'
 import { AuthProvider } from './lib/auth'
 import { AdminPage } from './pages/AdminPage'
+import { BannerEmbedPage } from './pages/BannerEmbedPage'
+import { BannerPage } from './pages/BannerPage'
+import { BannerReelPage } from './pages/BannerReelPage'
 import { BookingPage } from './pages/BookingPage'
 import { ContactPage } from './pages/ContactPage'
 import { EasyPage } from './pages/EasyPage'
@@ -32,21 +35,25 @@ import { StartPage } from './pages/StartPage'
 import { TodayPage } from './pages/TodayPage'
 import { WebsitesPage } from './pages/WebsitesPage'
 
-export default function App() {
+function Shell() {
   const ui = useModalState()
+  const path = useLocation().pathname
+  const embed = path.startsWith('/banner/embed') || path === '/banner/reel'
 
   return (
-    <BrowserRouter>
-      <LocaleProvider>
+    <LocaleProvider>
       <AuthProvider>
       <CatalogProvider>
       <UiProvider onQuote={ui.openQuote} onReview={ui.openReview}>
         <ScrollToTop />
-        <div className="flex min-h-svh flex-col">
-          <Header />
-          <main className="flex-1">
+        <div className={embed ? 'banner-embed-root' : 'flex min-h-svh flex-col'}>
+          {embed ? null : <Header />}
+          <main className={embed ? 'banner-embed-main' : 'flex-1'}>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/banner" element={<BannerPage />} />
+              <Route path="/banner/reel" element={<BannerReelPage />} />
+              <Route path="/banner/embed/:size" element={<BannerEmbedPage />} />
               <Route path="/today" element={<TodayPage />} />
               <Route path="/help" element={<HelpPage />} />
               <Route path="/modules" element={<ModulesPage />} />
@@ -135,15 +142,26 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
-          <Footer />
+          {embed ? null : <Footer />}
         </div>
-        <QuoteModal open={ui.quoteOpen} onClose={ui.closeQuote} />
-        <ReviewModal open={ui.reviewOpen} onClose={ui.closeReview} />
-        <CookieBanner />
+        {embed ? null : (
+          <>
+            <QuoteModal open={ui.quoteOpen} onClose={ui.closeQuote} />
+            <ReviewModal open={ui.reviewOpen} onClose={ui.closeReview} />
+            <CookieBanner />
+          </>
+        )}
       </UiProvider>
       </CatalogProvider>
       </AuthProvider>
-      </LocaleProvider>
+    </LocaleProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Shell />
     </BrowserRouter>
   )
 }
