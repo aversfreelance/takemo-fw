@@ -1,6 +1,6 @@
 # Takemo — takemo.co.uk
 
-Multi-page Vite + React site for Take Mee Online. Logos live in `public/logos` (copied from the Takemo brand folder).
+Multi-page Vite + React site for Take Me Online. Logos live in `public/logos` (copied from the Takemo brand folder).
 
 ## Pages
 

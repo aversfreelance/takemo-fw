@@ -299,6 +299,13 @@ export function Hero() {
             {copy.ctaSecondary}
           </Link>
         </div>
+        <div className="hero-copy hero-note mt-16 max-w-3xl sm:mt-20">
+          <p className="hero-note-lead">{copy.heroNote.lead}</p>
+          <p className="hero-note-detail">
+            {copy.heroNote.detail}
+            <span className="hero-note-accent">{copy.heroNote.accent}</span>
+          </p>
+        </div>
       </div>
     </section>
   )

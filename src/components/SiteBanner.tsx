@@ -211,7 +211,7 @@ function SlideCopy({
     return (
       <img
         src="/logos/takemo-header.png"
-        alt="Takemo — Take Mee Online"
+        alt="Takemo Ltd"
         className="site-banner-mark"
       />
     )
@@ -231,8 +231,29 @@ export function SiteBanner({ size }: { size: BannerSize }) {
   const [step, setStep] = useState(0)
   const [leaving, setLeaving] = useState<number | null>(null)
 
-  const slides: Slide[] = useMemo(
-    () => [
+  const slides: Slide[] = useMemo(() => {
+    const cards = copy.helpCards.map((card, index) => {
+      let text = card.title
+      text = text.replace(', online fizetéssel', ',\nonline fizetéssel')
+      text = text.replace(' and online payment', '\nand online payment')
+      const marks: Mark[] =
+        index === 0
+          ? [{ phrase: locale === 'hu' ? 'egyszerű bemutatkozó oldal' : 'simple introduction site', cls: 'is-accent' }]
+          : index === 1
+            ? [{ phrase: locale === 'hu' ? 'komplex weboldal' : 'full website', cls: 'is-accent' }]
+            : index === 2
+              ? [{ phrase: locale === 'hu' ? 'Webáruház' : 'shop', cls: 'is-gold' }]
+              : index === 3
+                ? [
+                    { phrase: locale === 'hu' ? 'Médiamegosztó' : 'media', cls: 'is-contrast' },
+                    { phrase: locale === 'hu' ? 'hírportál' : 'news', cls: 'is-contrast' },
+                  ]
+                : []
+      return { kind: 'card' as const, text, tone: `help-${index}`, marks }
+    })
+    const extra = cards[4]
+    const rest = cards.filter((_, index) => index !== 4)
+    return [
       { kind: 'slogan', tone: 'is-yellow' },
       {
         kind: 'line',
@@ -244,32 +265,14 @@ export function SiteBanner({ size }: { size: BannerSize }) {
       },
       { kind: 'line', text: copy.chapters[1].title, tone: 'is-red' },
       { kind: 'line', text: copy.chapters[2].title, tone: 'is-blue' },
+      extra,
       { kind: 'line', text: copy.journeyLine, tone: 'is-yellow' },
       { kind: 'line', text: copy.helpLine, tone: 'is-white' },
       { kind: 'line', text: copy.payLine, tone: 'is-green' },
-      ...copy.helpCards.map((card, index) => {
-        let text = card.title.replaceAll('Webshop', 'Webáruház')
-        text = text.replace(', online fizetéssel', ',\nonline fizetéssel')
-        text = text.replace(' and online payment', '\nand online payment')
-        const marks: Mark[] =
-          index === 0
-            ? [{ phrase: locale === 'hu' ? 'egyszerű bemutatkozó oldal' : 'simple introduction site', cls: 'is-accent' }]
-            : index === 1
-              ? [{ phrase: locale === 'hu' ? 'komplex weboldal' : 'full website', cls: 'is-accent' }]
-              : index === 2
-                ? [{ phrase: locale === 'hu' ? 'Webáruház' : 'shop', cls: 'is-gold' }]
-                : index === 3
-                  ? [
-                      { phrase: locale === 'hu' ? 'Médiamegosztó' : 'media', cls: 'is-contrast' },
-                      { phrase: locale === 'hu' ? 'hírportál' : 'news', cls: 'is-contrast' },
-                    ]
-                  : []
-        return { kind: 'card' as const, text, tone: `help-${index}`, marks }
-      }),
+      ...rest,
       { kind: 'logo', tone: 'is-yellow' },
-    ],
-    [copy, locale],
-  )
+    ].filter(Boolean) as Slide[]
+  }, [copy, locale])
 
   useEffect(() => {
     const node = ref.current

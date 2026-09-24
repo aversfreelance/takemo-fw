@@ -13,5 +13,17 @@ export function useOrder(token?: string) {
       .catch(() => setError('missing'))
   }, [token])
 
-  return { order, setOrder, error }
+  async function reload() {
+    if (!token) return null
+    try {
+      const next = await api.getOrder(token)
+      setOrder(next)
+      return next
+    } catch {
+      setError('missing')
+      return null
+    }
+  }
+
+  return { order, setOrder, error, reload }
 }

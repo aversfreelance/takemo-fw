@@ -3,9 +3,11 @@ import cors from 'cors'
 import express from 'express'
 import multer from 'multer'
 import Stripe from 'stripe'
-import { invoicePdf, contractPdf } from './pdf.js'
+import { getCompany, saveCompany } from './company.js'
+import { invoicePdf, contractPdf, handoverPdf } from './pdf.js'
 import { addAdminToken, getById, getByToken, hasAdminToken, putOrder, allOrders, ordersByUser, uid } from './store.js'
 import { computeTotals, getCatalog, saveCatalog } from './totals.js'
+import { notifyNewMessage, notifyPaymentDue, notifyPreviewReady, notifyPreviewChanges } from './mail.js'
 import {
   dropSession,
   googleFromCredential,
@@ -21,9 +23,28 @@ const upload = multer({
 })
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'takemo-admin'
-const PUBLIC_URL = process.env.PUBLIC_URL || 'http://localhost:5173'
-const stripeSecret = process.env.STRIPE_SECRET_KEY || ''
-const stripe = stripeSecret ? new Stripe(stripeSecret) : null
+const PUBLIC_URL =
+  process.env.PUBLIC_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173')
+function getStripe() {
+  const secret = process.env.STRIPE_SECRET_KEY || ''
+  return secret ? new Stripe(secret) : null
+}
+
+function isHuf(order) {
+  return order?.totals?.currency === 'HUF' || order?.locale === 'hu'
+}
+
+function stripeAmount(amount, order) {
+  const value = Math.round(Number(amount || 0))
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return isHuf(order) ? value * 100 : value
+}
+
+function sessionMatches(session, expected) {
+  return Boolean(session && session.payment_status === 'paid' && Number(session.amount_total) === expected)
+}
 
 const emptyDetails = {
   businessName: '',
@@ -33,7 +54,9 @@ const emptyDetails = {
   domain: '',
   logoMode: 'us',
   logoFile: '',
-  palette: 'us',
+  palette: '',
+  referenceFile1: '',
+  referenceFile2: '',
   content: '',
   products: '',
   frequency: '',
@@ -53,7 +76,7 @@ function logoDataUrl(file) {
 
 function publicOrder(order) {
   const { token, ...rest } = order
-  return { ...rest, token, stripeEnabled: Boolean(stripe) }
+  return { ...rest, token, stripeEnabled: Boolean(getStripe()) }
 }
 
 function selectionFromBody(body = {}, current = {}) {
@@ -100,9 +123,66 @@ async function requireOrder(req, res, next) {
   res.status(403).json({ error: 'owner' })
 }
 
+function handoverText(order) {
+  const value = order?.handover
+  if (typeof value === 'string') return value
+  if (value && typeof value === 'object') {
+    return [value.domain, value.hosting, value.database].filter(Boolean).join('\n\n')
+  }
+  return ''
+}
+
+function applyHandover(order, body = {}) {
+  if (body.text != null) order.handover = String(body.text)
+}
+
+async function markPaid(order) {
+  if (!order || order.status !== 'ready') return order
+  order.status = 'paid'
+  order.paidAt = new Date().toISOString()
+  return putOrder(order)
+}
+
 export function createApi() {
   const app = express()
   app.use(cors())
+
+  app.post(
+    '/api/stripe/webhook',
+    express.raw({ type: 'application/json' }),
+    wrap(async (req, res) => {
+      const stripe = getStripe()
+      if (!stripe) {
+        res.json({ ok: true })
+        return
+      }
+      const secret = process.env.STRIPE_WEBHOOK_SECRET
+      const payload = Buffer.isBuffer(req.body) ? req.body : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}))
+      const event = secret
+        ? stripe.webhooks.constructEvent(payload, req.headers['stripe-signature'], secret)
+        : JSON.parse(payload.toString())
+      if (event.type === 'checkout.session.completed') {
+        const token = event.data.object.metadata?.token
+        const kind = event.data.object.metadata?.kind
+        const order = token ? await getByToken(token) : null
+        if (order && kind === 'balance' && order.status === 'delivered' && !order.balancePaidAt) {
+          const expected = stripeAmount(order.totals.remainder, order)
+          if (sessionMatches(event.data.object, expected)) {
+            order.balancePending = true
+            await putOrder(order)
+          }
+        } else if (order && kind !== 'balance' && order.status === 'ready') {
+          const expected = stripeAmount(order.totals.deposit, order)
+          if (sessionMatches(event.data.object, expected)) {
+            order.depositPending = true
+            await putOrder(order)
+          }
+        }
+      }
+      res.json({ ok: true })
+    }),
+  )
+
   app.use(express.json({ limit: '2mb' }))
   app.use(wrap(attachUser))
 
@@ -167,7 +247,6 @@ export function createApi() {
 
   app.post(
     '/api/orders',
-    requireUser,
     wrap(async (req, res) => {
       const { name, email, phone, siteType, message, locale, siteId, careId, careTerm, moduleIds } = req.body || {}
       if (!name || !email || !message) {
@@ -188,14 +267,14 @@ export function createApi() {
       const order = await putOrder({
         id: uid(4),
         token: uid(16),
-        userId: req.user.id,
+        userId: req.user?.id || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         locale: locale === 'hu' ? 'hu' : 'en',
         status: 'enquiry',
         enquiry: {
-          name: name || req.user.name,
-          email: email || req.user.email,
+          name: name || req.user?.name || '',
+          email: email || req.user?.email || '',
           phone: phone || '',
           siteType: siteType || '',
           message,
@@ -208,6 +287,15 @@ export function createApi() {
         deliveredAt: null,
         balancePaidAt: null,
         stripeSessionId: null,
+        handover: '',
+        previewUrl: '',
+        previewSentAt: null,
+        previewApprovedAt: null,
+        previewFeedback: null,
+        previewRound: 0,
+      })
+      notifyNewMessage(order).catch((error) => {
+        console.error('notify', error)
       })
       res.json(publicOrder(order))
     }),
@@ -221,7 +309,11 @@ export function createApi() {
     '/api/orders/:token/details',
     requireUser,
     wrap(requireOrder),
-    upload.single('logo'),
+    upload.fields([
+      { name: 'logo', maxCount: 1 },
+      { name: 'reference1', maxCount: 1 },
+      { name: 'reference2', maxCount: 1 },
+    ]),
     wrap(async (req, res) => {
       const order = req.order
       if (order.status !== 'accepted' && order.status !== 'details') {
@@ -229,6 +321,10 @@ export function createApi() {
         return
       }
       const body = req.body || {}
+      const files = req.files || {}
+      const logo = files.logo?.[0]
+      const reference1 = files.reference1?.[0]
+      const reference2 = files.reference2?.[0]
       order.details = {
         ...emptyDetails,
         ...order.details,
@@ -238,8 +334,10 @@ export function createApi() {
         vatNumber: body.vatNumber || '',
         domain: body.domain || '',
         logoMode: body.logoMode === 'upload' ? 'upload' : 'us',
-        logoFile: req.file ? logoDataUrl(req.file) : order.details?.logoFile || '',
-        palette: body.palette || 'us',
+        logoFile: logo ? logoDataUrl(logo) : order.details?.logoFile || '',
+        palette: String(body.colors || '').trim(),
+        referenceFile1: reference1 ? logoDataUrl(reference1) : order.details?.referenceFile1 || '',
+        referenceFile2: reference2 ? logoDataUrl(reference2) : order.details?.referenceFile2 || '',
         content: body.content || '',
         products: body.products || '',
         frequency: body.frequency || '',
@@ -282,39 +380,131 @@ export function createApi() {
   )
 
   app.post(
+    '/api/orders/:token/preview/approve',
+    requireUser,
+    wrap(requireOrder),
+    wrap(async (req, res) => {
+      const order = req.order
+      if (!order.previewSentAt || order.previewApprovedAt) {
+        res.status(409).json({ error: 'preview' })
+        return
+      }
+      order.previewApprovedAt = new Date().toISOString()
+      res.json(publicOrder(await putOrder(order)))
+    }),
+  )
+
+  app.post(
+    '/api/orders/:token/preview/changes',
+    requireUser,
+    wrap(requireOrder),
+    wrap(async (req, res) => {
+      const order = req.order
+      const feedback = String(req.body?.feedback || '').trim()
+      if (!order.previewSentAt || !feedback) {
+        res.status(400).json({ error: 'preview' })
+        return
+      }
+      order.previewFeedback = feedback
+      order.previewSentAt = null
+      notifyPreviewChanges(order).catch((error) => {
+        console.error('notify preview changes', error)
+      })
+      res.json(publicOrder(await putOrder(order)))
+    }),
+  )
+
+  app.post(
     '/api/orders/:token/checkout',
     requireUser,
     wrap(requireOrder),
     wrap(async (req, res) => {
       const order = req.order
-      if (!order || order.status !== 'ready') {
+      const kind = req.body?.kind === 'balance' ? 'balance' : 'deposit'
+      if (kind === 'deposit' && order.status !== 'ready') {
         res.status(409).json({ error: 'not ready' })
         return
       }
+      if (kind === 'balance' && (order.status !== 'delivered' || !order.balanceDue || order.balancePaidAt)) {
+        res.status(409).json({ error: 'not delivered' })
+        return
+      }
+      const stripe = getStripe()
       if (!stripe) {
         res.status(400).json({ error: 'stripe-missing' })
         return
       }
+      const amount = kind === 'balance' ? order.totals.remainder : order.totals.deposit
+      const unitAmount = stripeAmount(amount, order)
+      if (!unitAmount) {
+        res.status(400).json({ error: 'amount' })
+        return
+      }
+      const co = await getCompany()
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
+        payment_method_types: ['card'],
+        locale: order.locale === 'hu' ? 'hu' : 'en',
         customer_email: order.enquiry.email,
         line_items: [
           {
             quantity: 1,
             price_data: {
-              currency: order.totals.currency === 'HUF' ? 'huf' : 'gbp',
-              unit_amount: order.totals.deposit,
-              product_data: { name: `Take Mee Online deposit ${order.id}` },
+              currency: isHuf(order) ? 'huf' : 'gbp',
+              unit_amount: unitAmount,
+              product_data: {
+                name: kind === 'balance' ? `${co.name} 80% ${order.id}` : `${co.name} deposit ${order.id}`,
+              },
             },
           },
         ],
-        metadata: { token: order.token, id: order.id },
+        metadata: { token: order.token, id: order.id, kind },
         success_url: `${PUBLIC_URL}/order/${order.token}/pay?paid=1`,
         cancel_url: `${PUBLIC_URL}/order/${order.token}/pay`,
       })
-      order.stripeSessionId = session.id
+      if (kind === 'balance') order.stripeBalanceSessionId = session.id
+      else order.stripeSessionId = session.id
       await putOrder(order)
       res.json({ url: session.url })
+    }),
+  )
+
+  app.post(
+    '/api/orders/:token/confirm-pay',
+    requireUser,
+    wrap(requireOrder),
+    wrap(async (req, res) => {
+      const order = req.order
+      const stripe = getStripe()
+      let checkout = null
+
+      if (stripe && order.status === 'delivered' && !order.balancePaidAt && order.stripeBalanceSessionId) {
+        const session = await stripe.checkout.sessions.retrieve(order.stripeBalanceSessionId)
+        if (sessionMatches(session, stripeAmount(order.totals.remainder, order))) {
+          order.balancePending = true
+          checkout = 'succeeded'
+        } else {
+          order.balancePending = false
+          checkout = 'failed'
+        }
+        res.json({ order: publicOrder(await putOrder(order)), checkout })
+        return
+      }
+
+      if (stripe && order.stripeSessionId && order.status === 'ready') {
+        const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId)
+        if (sessionMatches(session, stripeAmount(order.totals.deposit, order))) {
+          order.depositPending = true
+          checkout = 'succeeded'
+        } else {
+          order.depositPending = false
+          checkout = 'failed'
+        }
+        res.json({ order: publicOrder(await putOrder(order)), checkout })
+        return
+      }
+
+      res.json({ order: publicOrder(order) })
     }),
   )
 
@@ -328,7 +518,7 @@ export function createApi() {
         res.status(409).json({ error: 'not ready' })
         return
       }
-      if (stripe) {
+      if (getStripe()) {
         res.status(400).json({ error: 'use-stripe' })
         return
       }
@@ -357,8 +547,8 @@ export function createApi() {
     '/api/orders/:token/invoice.pdf',
     wrap(async (req, res) => {
       const order = await getByToken(req.params.token)
-      if (!order || order.status !== 'delivered') {
-        res.status(409).json({ error: 'not delivered' })
+      if (!order || order.status !== 'delivered' || !order.balancePaidAt) {
+        res.status(409).json({ error: 'not paid' })
         return
       }
       const pdf = await invoicePdf(order)
@@ -368,29 +558,22 @@ export function createApi() {
     }),
   )
 
-  app.post(
-    '/api/stripe/webhook',
-    express.raw({ type: 'application/json' }),
+  app.get(
+    '/api/orders/:token/handover.pdf',
     wrap(async (req, res) => {
-      if (!stripe) {
-        res.json({ ok: true })
+      const order = await getByToken(req.params.token)
+      if (!order || order.status !== 'delivered' || !order.balancePaidAt) {
+        res.status(409).json({ error: 'not paid' })
         return
       }
-      let event = req.body
-      const secret = process.env.STRIPE_WEBHOOK_SECRET
-      if (secret) {
-        event = stripe.webhooks.constructEvent(req.body, req.headers['stripe-signature'], secret)
+      if (!handoverText(order).trim()) {
+        res.status(409).json({ error: 'no handover' })
+        return
       }
-      if (event.type === 'checkout.session.completed') {
-        const token = event.data.object.metadata?.token
-        const order = token ? await getByToken(token) : null
-        if (order && order.status === 'ready') {
-          order.status = 'paid'
-          order.paidAt = new Date().toISOString()
-          await putOrder(order)
-        }
-      }
-      res.json({ ok: true })
+      const pdf = await handoverPdf(order)
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', `inline; filename="takemo-${order.id}-website.pdf"`)
+      res.send(pdf)
     }),
   )
 
@@ -411,6 +594,22 @@ export function createApi() {
         return
       }
       res.json(await saveCatalog(next))
+    }),
+  )
+
+  app.get(
+    '/api/admin/company',
+    wrap(requireAdmin),
+    wrap(async (_req, res) => {
+      res.json(await getCompany())
+    }),
+  )
+
+  app.put(
+    '/api/admin/company',
+    wrap(requireAdmin),
+    wrap(async (req, res) => {
+      res.json(await saveCompany(req.body))
     }),
   )
 
@@ -448,15 +647,56 @@ export function createApi() {
       if (req.body?.note) order.adminNote = req.body.note
       if (action === 'accept' && order.status === 'enquiry') order.status = 'accepted'
       else if (action === 'decline' && order.status === 'enquiry') order.status = 'declined'
-      else if (action === 'ready' && ['review', 'details'].includes(order.status)) order.status = 'ready'
-      else if (action === 'paid' && order.status === 'ready') {
+      else if (action === 'ready' && ['review', 'details'].includes(order.status)) {
+        order.status = 'ready'
+        order.readyAt = new Date().toISOString()
+      }
+      else if (action === 'handover') {
+        applyHandover(order, req.body)
+      } else if (action === 'set-preview' && order.status === 'paid') {
+        order.previewUrl = String(req.body?.previewUrl || '').trim()
+      } else if (action === 'send-preview' && order.status === 'paid') {
+        if (!order.previewUrl) {
+          res.status(400).json({ error: 'preview-url' })
+          return
+        }
+        order.previewSentAt = new Date().toISOString()
+        order.previewRound = Number(order.previewRound || 0) + 1
+        order.previewFeedback = null
+        notifyPreviewReady(order).catch((error) => {
+          console.error('notify preview', error)
+        })
+      } else if (action === 'confirm-deposit' && order.status === 'ready' && order.depositPending) {
         order.status = 'paid'
         order.paidAt = new Date().toISOString()
+        order.depositPending = false
+      } else if (action === 'paid' && order.status === 'ready' && !order.depositPending) {
+        order.status = 'paid'
+        order.paidAt = new Date().toISOString()
+        order.depositPending = false
       } else if (action === 'deliver' && order.status === 'paid') {
+        if (!order.previewApprovedAt) {
+          res.status(409).json({ error: 'preview' })
+          return
+        }
         order.status = 'delivered'
         order.deliveredAt = new Date().toISOString()
-      } else if (action === 'balance' && order.status === 'delivered') {
+      } else if (action === 'balance-due' && order.status === 'delivered' && !order.balancePaidAt) {
+        order.balanceDue = true
+        order.balanceDueAt = new Date().toISOString()
+        notifyPaymentDue(order).catch((error) => {
+          console.error('notify payment', error)
+        })
+      } else if (action === 'confirm-balance' && order.status === 'delivered' && order.balancePending) {
+        applyHandover(order, req.body)
         order.balancePaidAt = new Date().toISOString()
+        order.balanceDue = false
+        order.balancePending = false
+      } else if (action === 'balance' && order.status === 'delivered') {
+        applyHandover(order, req.body)
+        order.balancePaidAt = new Date().toISOString()
+        order.balanceDue = false
+        order.balancePending = false
       } else if (action === 'note') {
         /* note only */
       } else {

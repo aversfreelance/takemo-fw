@@ -7,13 +7,8 @@ export function PaySplit({ bare = false }: { bare?: boolean }) {
   const chapter = copy.chapters[2]
 
   return (
-    <section className="overflow-x-hidden bg-ink py-24 text-white" id="modules">
+    <section className={`overflow-x-hidden bg-ink text-white${bare ? ' py-16' : ' py-24'}`} id="modules">
       <div className="page-wrap">
-        <Reveal variant="left">
-          <p className="mb-8 text-left text-[clamp(1.4rem,3vw,2.4rem)] font-extrabold uppercase leading-[1.1] tracking-[0.04em]">
-            {copy.payLine}
-          </p>
-        </Reveal>
         {bare ? null : (
           <Reveal>
             <p className="mb-4 text-sm font-extrabold tracking-[0.22em] text-[#ffd24a]">{chapter.kicker}</p>
@@ -22,24 +17,17 @@ export function PaySplit({ bare = false }: { bare?: boolean }) {
             </h2>
           </Reveal>
         )}
-        <div className={`grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,4fr)] gap-3${bare ? '' : ' mt-14'}`}>
-          <Reveal className="pay-slide min-w-0" variant="fade">
-            <div className="pay-block pay-block-sm pay-from-left bg-brand">
-              <div>
-                <p className="pay-num">{copy.payNow}</p>
-                <p className="pay-note mt-4 px-3 text-sm font-extrabold uppercase tracking-[0.16em]">{copy.payNowNote}</p>
+        <Reveal className={bare ? '' : 'mt-10'} variant="fade">
+          <div className="pay-explain">
+            {copy.paySteps.map((step, index) => (
+              <div key={step.share} className={`pay-explain-block${index === 0 ? ' is-first' : ''}`}>
+                <p className="pay-explain-lead">{step.lead}</p>
+                <p className={`pay-explain-share${index === 0 ? ' text-brand' : ' text-brand-soft'}`}>{step.share}</p>
+                <p className="pay-explain-detail">{step.detail}</p>
               </div>
-            </div>
-          </Reveal>
-          <Reveal className="pay-slide min-w-0" variant="fade" delay={140}>
-            <div className="pay-block pay-from-right bg-brand-soft">
-              <div>
-                <p className="pay-num">{copy.payLater}</p>
-                <p className="mt-4 px-6 text-sm font-extrabold uppercase tracking-[0.16em]">{copy.payLaterNote}</p>
-              </div>
-            </div>
-          </Reveal>
-        </div>
+            ))}
+          </div>
+        </Reveal>
         {bare ? null : (
           <Reveal className="mt-12">
             <p className="max-w-2xl text-xl leading-8 text-white">{chapter.paragraphs[1].replace(/\*\*/g, '')}</p>

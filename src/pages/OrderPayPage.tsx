@@ -5,7 +5,9 @@ import { PageHero } from '../components/PageHero'
 import { PriceBox } from '../components/PriceBox'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
-import { api, contractUrl, invoiceUrl } from '../lib/api'
+import { api, contractUrl, handoverUrl, invoiceUrl } from '../lib/api'
+import { hasHandover } from '../lib/handover'
+import { orderCardClass } from '../lib/orderStatus'
 import { useOrder } from '../lib/useOrder'
 
 export function OrderPayPage() {
@@ -15,24 +17,35 @@ export function OrderPayPage() {
   const t = shopCopy(locale)
   const { order, setOrder, error } = useOrder(token)
   const [busy, setBusy] = useState(false)
+  const [payError, setPayError] = useState(false)
+  const [payFailed, setPayFailed] = useState(false)
 
   useEffect(() => {
     if (!token || params.get('paid') !== '1') return
-    api.getOrder(token).then(setOrder)
+    api
+      .confirmPay(token)
+      .then(({ order: next, checkout }) => {
+        setOrder(next)
+        setPayFailed(checkout === 'failed')
+      })
+      .catch(() => api.getOrder(token).then(setOrder))
   }, [params, token, setOrder])
 
   if (error || !order) return <PageHero title={t.pay}>{t.needAccept}</PageHero>
 
-  async function pay() {
+  async function pay(kind: 'deposit' | 'balance' = 'deposit') {
     if (!order) return
     setBusy(true)
+    setPayError(false)
     try {
       if (order.stripeEnabled) {
-        const { url } = await api.checkout(order.token)
+        const { url } = await api.checkout(order.token, kind)
         window.location.href = url
         return
       }
       setOrder(await api.demoPay(order.token))
+    } catch {
+      setPayError(true)
     } finally {
       setBusy(false)
     }
@@ -44,30 +57,49 @@ export function OrderPayPage() {
       <section className="bg-wash pb-24">
         <div className="page-wrap max-w-3xl">
           <OrderSteps token={order.token} current="pay" />
-          <div className="mt-10">
+          <div className={`mt-10 rounded-[18px] border-[3px] p-6 ${orderCardClass(order)}`}>
             <PriceBox totals={order.totals} />
-          </div>
-          {order.status === 'ready' ? (
-            <button type="button" className="btn-primary mt-8" disabled={busy} onClick={() => void pay()}>
-              {order.stripeEnabled ? t.payCard : t.demoPay}
-            </button>
-          ) : null}
-          {order.status === 'paid' || order.status === 'delivered' ? (
-            <div className="mt-8 font-bold">
-              <p>{t.paid}</p>
-              <a href={contractUrl(order.token)} className="btn-primary mt-6" target="_blank" rel="noreferrer">
-                {t.contract}
-              </a>
-              {order.status === 'delivered' ? (
-                <a href={invoiceUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
-                  {t.invoice}
+            {payError || payFailed ? <p className="mt-6 font-extrabold text-brand">{t.payFailed}</p> : null}
+            {order.balancePaidAt ? (
+              <p className="mt-6 text-xl font-extrabold">{t.paidFull}</p>
+            ) : order.balancePending || order.depositPending ? (
+              <p className="mt-6 text-xl font-extrabold">{t.paymentPending}</p>
+            ) : order.status === 'paid' || order.status === 'delivered' ? (
+              <p className="mt-6 font-extrabold">{t.paid}</p>
+            ) : null}
+            {order.status === 'ready' && !order.depositPending ? (
+              <button type="button" className="btn-primary mt-8" disabled={busy} onClick={() => void pay()}>
+                {order.stripeEnabled ? t.payCard : t.demoPay}
+              </button>
+            ) : null}
+            {order.status === 'delivered' && order.balanceDue && !order.balancePaidAt && !order.balancePending ? (
+              <button type="button" className="btn-primary mt-8" disabled={busy} onClick={() => void pay('balance')}>
+                {t.payCard} — {t.remainder}
+              </button>
+            ) : null}
+            {order.status === 'paid' || order.status === 'delivered' ? (
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a href={contractUrl(order.token)} className="btn-primary" target="_blank" rel="noreferrer">
+                  {t.contract}
                 </a>
-              ) : null}
-            </div>
-          ) : null}
-          {order.status !== 'ready' && order.status !== 'paid' && order.status !== 'delivered' ? (
-            <p className="mt-8 font-bold">{t.status[order.status]}</p>
-          ) : null}
+                {order.status === 'delivered' && order.balancePaidAt ? (
+                  <>
+                    <a href={invoiceUrl(order.token)} className="btn-outline" target="_blank" rel="noreferrer">
+                      {t.invoice}
+                    </a>
+                    {hasHandover(order) ? (
+                      <a href={handoverUrl(order.token)} className="btn-outline" target="_blank" rel="noreferrer">
+                        {t.handoverDoc}
+                      </a>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+            {order.status !== 'ready' && order.status !== 'paid' && order.status !== 'delivered' ? (
+              <p className="mt-6 font-bold">{t.status[order.status]}</p>
+            ) : null}
+          </div>
         </div>
       </section>
     </div>

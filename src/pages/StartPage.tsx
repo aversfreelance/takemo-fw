@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useCatalog } from '../catalog/CatalogProvider'
 import { siteTitle } from '../catalog/labels'
@@ -6,7 +6,7 @@ import { OrderSteps } from '../components/OrderSteps'
 import { PageHero } from '../components/PageHero'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
-import { api } from '../lib/api'
+import { api, type OrderStatus } from '../lib/api'
 import { useAuth } from '../lib/auth'
 
 export function StartPage() {
@@ -16,7 +16,32 @@ export function StartPage() {
   const { user } = useAuth()
   const [params] = useSearchParams()
   const [sent, setSent] = useState<{ token: string } | null>(null)
+  const [orderStatus, setOrderStatus] = useState<OrderStatus | null>(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!sent?.token || !user) return
+    let cancelled = false
+    let interval = 0
+
+    const load = async () => {
+      try {
+        const order = await api.getOrder(sent.token)
+        if (cancelled) return
+        setOrderStatus(order.status)
+        if (order.status !== 'enquiry' && interval) window.clearInterval(interval)
+      } catch {
+        /* keep waiting */
+      }
+    }
+
+    void load()
+    interval = window.setInterval(load, 5000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [sent?.token, user])
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -37,6 +62,7 @@ export function StartPage() {
       })
       localStorage.setItem('takemo-order', order.token)
       setSent({ token: order.token })
+      setOrderStatus(order.status)
     } catch {
       setError('error')
     }
@@ -50,10 +76,12 @@ export function StartPage() {
           <OrderSteps current="start" />
           {sent ? (
             <div className="mt-10 rounded-[18px] border-[3px] border-ink bg-[#ffd24a] p-8 font-bold">
-              <p>{t.waiting}</p>
-              <Link to={`/order/${sent.token}`} className="btn-primary mt-6">
-                {t.continue}
-              </Link>
+              <p>{orderStatus === 'declined' ? t.declined : t.waiting}</p>
+              {user && orderStatus && orderStatus !== 'enquiry' && orderStatus !== 'declined' ? (
+                <Link to={`/order/${sent.token}`} className="btn-primary mt-6">
+                  {t.continue}
+                </Link>
+              ) : null}
             </div>
           ) : (
             <form className="mt-10 grid gap-3" onSubmit={onSubmit}>

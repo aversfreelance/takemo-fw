@@ -5,10 +5,10 @@ export function Logo({ light = false, footer = false }: { light?: boolean; foote
   const height = footer ? 'h-12 md:h-14' : 'h-11 md:h-[52px]'
 
   return (
-    <Link to="/" className="logo-in inline-flex items-center no-underline" aria-label="Takemo — Take Mee Online">
+    <Link to="/" className="logo-in inline-flex items-center no-underline" aria-label="Takemo Ltd">
       <img
         src={src}
-        alt="Takemo — Take Mee Online"
+        alt="Takemo Ltd"
         className={`${height} w-auto ${light ? 'brightness-0 invert' : ''}`}
       />
     </Link>

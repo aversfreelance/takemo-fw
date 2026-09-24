@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useLocale } from '../i18n/locale'
+import { api } from '../lib/api'
 
 type Props = {
   open: boolean
@@ -7,14 +8,28 @@ type Props = {
 }
 
 export function QuoteModal({ open, onClose }: Props) {
-  const { copy } = useLocale()
+  const { copy, locale } = useLocale()
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState(false)
 
   if (!open) return null
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSent(true)
+    const data = new FormData(event.currentTarget)
+    setError(false)
+    try {
+      await api.createOrder({
+        name: String(data.get('name') || ''),
+        email: String(data.get('email') || ''),
+        phone: String(data.get('phone') || ''),
+        message: String(data.get('message') || ''),
+        locale,
+      })
+      setSent(true)
+    } catch {
+      setError(true)
+    }
   }
 
   return (
@@ -35,11 +50,12 @@ export function QuoteModal({ open, onClose }: Props) {
             <input required name="name" placeholder={copy.name} className="field" />
             <input required type="email" name="email" placeholder={copy.email} className="field" />
             <input type="tel" name="phone" placeholder={copy.phone} className="field" />
-            <textarea name="message" placeholder={copy.message} rows={4} className="field resize-y" />
+            <textarea required name="message" placeholder={copy.message} rows={4} className="field resize-y" />
             <label className="flex items-start gap-2 text-xs leading-5 text-muted">
               <input required type="checkbox" className="mt-0.5" />
               <span>{copy.privacyCheck}</span>
             </label>
+            {error ? <p className="font-bold text-brand">…</p> : null}
             <button type="submit" className="btn-primary mt-2">
               {copy.send}
             </button>

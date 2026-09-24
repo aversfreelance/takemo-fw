@@ -27,6 +27,7 @@ import { OrderDetailsPage } from './pages/OrderDetailsPage'
 import { OrderHubPage } from './pages/OrderHubPage'
 import { OrderModulesPage } from './pages/OrderModulesPage'
 import { OrderPayPage } from './pages/OrderPayPage'
+import { OrderPreviewPage } from './pages/OrderPreviewPage'
 import { OrderReviewPage } from './pages/OrderReviewPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { AccountPage } from './pages/AccountPage'
@@ -71,14 +72,7 @@ function Shell() {
                   </RequireAuth>
                 }
               />
-              <Route
-                path="/start"
-                element={
-                  <RequireAuth>
-                    <StartPage />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/start" element={<StartPage />} />
               <Route
                 path="/order/:token"
                 element={
@@ -112,6 +106,14 @@ function Shell() {
                 }
               />
               <Route
+                path="/order/:token/preview"
+                element={
+                  <RequireAuth>
+                    <OrderPreviewPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
                 path="/order/:token/pay"
                 element={
                   <RequireAuth>
@@ -119,14 +121,7 @@ function Shell() {
                   </RequireAuth>
                 }
               />
-              <Route
-                path="/admin"
-                element={
-                  <RequireAuth>
-                    <AdminPage />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="/quote" element={<Navigate to="/start" replace />} />
               <Route path="/management" element={<ManagementPage />} />
               <Route path="/maintenance" element={<MaintenancePage />} />

@@ -9,6 +9,7 @@ export type Copy = {
   heroLead: string
   ctaPrimary: string
   ctaSecondary: string
+  heroNote: { lead: string; detail: string; accent: string }
   nav: { to: string; label: string }[]
   chapters: {
     id: string
@@ -50,10 +51,7 @@ export type Copy = {
   channels: string[]
   helpCards: { title: string; text: string; href: string }[]
   workSteps: { n: string; title: string; text: string }[]
-  payNow: string
-  payLater: string
-  payNowNote: string
-  payLaterNote: string
+  paySteps: { lead: string; share: string; detail: string }[]
   payLine: string
   helpLine: string
   journeyLine: string
@@ -68,7 +66,7 @@ export const copies: Record<Locale, Copy> = {
     htmlLang: 'hu',
     title: 'Takemo — Ne csak megjelenj! Légy látható mindenhol!',
     description:
-      'Ne csak megjelenj! Légy látható mindenhol! Honlap, kapcsolat, foglalás és webshop — úgy, hogy Önnek nem kell értenie a technikához.',
+      'Ne csak megjelenj! Légy látható mindenhol! Honlap, kapcsolat, foglalás és webáruház — úgy, hogy Önnek nem kell értenie a technikához.',
     slogan: {
       line1: 'Ne csak megjelenj!',
       line2: 'Légy látható mindenhol!',
@@ -78,6 +76,11 @@ export const copies: Record<Locale, Copy> = {
     heroLead: 'Egyszerű honlaptól a komplex üzleti megoldásokig\nkis- és középvállalkozásoknak',
     ctaPrimary: 'Üzenet',
     ctaSecondary: 'Miben segítünk',
+    heroNote: {
+      lead: 'Online szolgáltatás',
+      detail: 'Működő weboldal akár ',
+      accent: '48 órán belül!',
+    },
     nav: [
       { to: '/websites', label: 'Weboldal készítés' },
       { to: '/maintenance', label: 'Karbantartás' },
@@ -102,7 +105,7 @@ export const copies: Record<Locale, Copy> = {
         title: 'Mi ebben segítünk',
         paragraphs: [
           'Mi nem egyszerűen honlapot készítünk. Abban segítünk, hogy vállalkozása belépjen egy modernebb, gyorsabb és jobban működő digitális világba, és később is lépést tudjon tartani a változásokkal.',
-          'Ha Önnek csak egy egyszerű bemutatkozó oldalra van szüksége, elkészítjük. Ha olyan honlap kell, ahol az ügyfelek kapcsolatba tudnak lépni Önnel, időpontot tudnak foglalni vagy online tudnak fizetni, azt is megoldjuk. Ha webshopot szeretne, kialakíthatjuk az online fizetést, a számlázást és akár a kiszállítás követését is. Ha pedig komolyabb tartalommegosztó oldalra vagy hírportálra van szüksége, olyan rendszert is készítünk, ahol Ön vagy munkatársai egyszerűen fel tudják tölteni és szerkeszteni a tartalmakat, képeket, híreket vagy más információkat. Igény szerint a rendszer összeköthető **Facebookkal, Instagrammal vagy más online platformokkal** is.',
+          'Ha Önnek csak egy egyszerű bemutatkozó oldalra van szüksége, elkészítjük. Ha olyan honlap kell, ahol az ügyfelek kapcsolatba tudnak lépni Önnel, időpontot tudnak foglalni vagy online tudnak fizetni, azt is megoldjuk. Ha webáruházat szeretne, kialakíthatjuk az online fizetést, a számlázást és akár a kiszállítás követését is. Ha pedig komolyabb tartalommegosztó oldalra vagy hírportálra van szüksége, olyan rendszert is készítünk, ahol Ön vagy munkatársai egyszerűen fel tudják tölteni és szerkeszteni a tartalmakat, képeket, híreket vagy más információkat. Igény szerint a rendszer összeköthető **Facebookkal, Instagrammal vagy más online platformokkal** is.',
           'A technikai háttér miatt sem kell aggódnia. Elintézzük a **domain regisztrációját**, beállítjuk a **tárhelyet**, az **adatbázist**, és gondoskodunk arról is, hogy az oldal technikailag megfelelően működjön. Az elkészült rendszert felkészítjük arra is, hogy a Google és más keresők minél könnyebben megtalálják. Ezt nevezzük keresőoptimalizálásnak, vagy röviden **SEO-nak**.',
         ],
       },
@@ -111,15 +114,15 @@ export const copies: Record<Locale, Copy> = {
         kicker: '03',
         title: 'Nem kell mindent egyszerre megrendelni',
         paragraphs: [
-          'Szolgáltatásaink külön-külön, modulokban is kérhetők. Ha Önnek csak egy egyszerű honlapra van szüksége, nem kell fizetnie olyan funkciókért, amelyeket nem használ. Ha később szeretne hozzáadni például online foglalást, fizetést, webshopot vagy más funkciót, a rendszer bővíthető.',
-          'Az áraink átláthatók. **Minden szolgáltatás annyiba kerül, amennyiért a honlapunkon kínáljuk.** A munka megkezdésekor, a szerződéskötéskor a teljes előre megbeszélt díj **20%-át** kérjük. Ez fedezi a fejlesztés induló technikai költségeit, például a domain regisztrációját, a tárhelyet, az adatbázist és a szükséges technikai szolgáltatásokat. A fennmaradó összeget akkor számlázzuk, amikor az elkészült rendszert átadjuk és üzembe helyezzük.',
+          'Szolgáltatásaink külön-külön, modulokban is kérhetők. Ha Önnek csak egy egyszerű honlapra van szüksége, nem kell fizetnie olyan funkciókért, amelyeket nem használ. Ha később szeretne hozzáadni például online foglalást, fizetést, webáruházat vagy más funkciót, a rendszer bővíthető.',
+          'Az áraink átláthatók. **Minden szolgáltatás annyiba kerül, amennyiért a honlapunkon kínáljuk.** Szerződéskor először csak a **domain**, a **tárhely** és az **adatbázis** első éves díját kell kifizetni — egyszeri költség, amely e három szolgáltatás egy évre szóló díját fedi. Mi intézzük, és az elérést természetesen átadjuk Önnek. Ez nem a honlap elkészítésének díja: külön szolgáltatóknak megy, a teljes ár **20%-a**. Magát a honlapot — a fejlesztés és a dizájn díját, a fennmaradó **80%-ot** — csak átadáskor számlázzuk.',
           'Természetesen egy fejlesztés közben is változhatnak az igények. Ha menet közben kiderül, hogy valamire még szükség van, egy új funkció hozzáadható, vagy egy korábban tervezett megoldás módosítható.',
         ],
       },
       {
         id: 'easy',
         kicker: '04',
-        title: 'Nem kell értenie a technikához',
+        title: 'Nem kell értenie hozzá!',
         paragraphs: [
           'Ügyfeleink nagy része nem ért a weboldalak, szerverek, adatbázisok vagy más technikai rendszerek működéséhez. **És ezt nem is várjuk el.** Önnek nem kell tudnia, hogyan működik egy honlap a háttérben. Nem kell tudnia, mi az a szerver, adatbázis vagy keresőoptimalizálás. Ez a mi dolgunk.',
           'Azért vagyunk, hogy levegyük Önről ezt a terhet, és egy kész, működő rendszert adjunk át, amelyet Ön egyszerűen használni tud. Ha kérdése van keressen meg minket, örömmel segítünk! Ne felejtse: Nem kell értenie hozzá, ezért vagyunk mi.',
@@ -164,7 +167,7 @@ export const copies: Record<Locale, Copy> = {
     quoteBtn: 'Üzenet',
     formHint: [
       'Van már honlapja, domainje vagy e-mailje?',
-      'Honlap, foglalás, webshop vagy valami más kell?',
+      'Honlap, foglalás, webáruház vagy valami más kell?',
       'Van határidő?',
     ],
     more: 'Tovább',
@@ -195,7 +198,7 @@ export const copies: Record<Locale, Copy> = {
     helpCards: [
       { title: 'Egyszerű bemutatkozó oldal üzenetküldéssel', text: 'Ha csak ennyi kell, ennyit csinálunk.', href: '/websites#simple' },
       { title: 'Komplex weboldal időpontfoglalással, online fizetéssel', text: 'Az ügyfél elintézi, nem kell telefonálnia.', href: '/websites#booking' },
-      { title: 'Webshop számlázással', text: 'Fizetés, számla.', href: '/websites#shop' },
+      { title: 'Webáruház számlázással', text: 'Fizetés, számla.', href: '/websites#shop' },
       { title: 'Médiamegosztó vagy hírportál felhasználómodullal', text: 'Ön tölti fel. Nem kell hozzánk írnia egy-egy cikkhez.', href: '/websites#media' },
       { title: 'Extra modulok', text: 'A háttér. Mi beállítjuk.', href: '/modules' },
       { title: 'Konfigurálás, optimalizálás, AdSense, SEO', text: 'Hogy a Google is megtalálja, nem csak az, aki már ismeri.', href: '/modules#setup' },
@@ -206,13 +209,22 @@ export const copies: Record<Locale, Copy> = {
       { n: '03', title: 'Felépítjük', text: 'Látja menet közben. Nincs hónapokig tartó csend.' },
       { n: '04', title: 'Ott maradunk', text: 'Ha valami elromlik vagy bővíteni kell, van kihez szólni.' },
     ],
-    payNow: '20%',
-    payLater: '80%',
-    payNowNote: 'Szerződéskor. Domain, tárhely, a munka elindul.',
-    payLaterNote: 'Amikor átadjuk, és használható.',
+    paySteps: [
+      {
+        lead: 'Az elején fizetendő:',
+        share: 'A teljes ár 20%-a',
+        detail:
+          'Ez tartalmazza a domain, a hosting és a database server 1 éves díját és az adminisztrációs költségeket. Természetesen az ezekhez tartozó elérések az Ön tulajdonába kerülnek.',
+      },
+      {
+        lead: 'A végén, átadáskor fizetendő:',
+        share: 'A teljes ár 80%-a',
+        detail: 'Ez tartalmazza a fejlesztés, a dizájn és a konfiguráció díját.',
+      },
+    ],
     payLine: 'NEM KELL EGYBEN KIFIZETNIE',
     helpLine: 'TÖBB MEGOLDÁS KÖZÜL IS VÁLASZTHAT',
-    journeyLine: 'AZ EGÉSZ FOLYAMATOT KÖVETHETI',
+    journeyLine: 'az egész folyamat követhető az oldalunkon',
     workTitle: 'Hogyan dolgozunk',
     punchLeft: 'Egy honlap',
     punchRight: 'Online jelenlét',
@@ -232,6 +244,11 @@ export const copies: Record<Locale, Copy> = {
     heroLead: 'From a simple website to full online solutions\nfor small and medium-sized businesses',
     ctaPrimary: 'Message',
     ctaSecondary: 'What we do',
+    heroNote: {
+      lead: 'Online service',
+      detail: 'A working website, even within ',
+      accent: '48 hours!',
+    },
     nav: [
       { to: '/websites', label: 'Website design' },
       { to: '/maintenance', label: 'Monthly care' },
@@ -266,7 +283,7 @@ export const copies: Record<Locale, Copy> = {
         title: 'You do not have to order everything at once',
         paragraphs: [
           'Our services can also be ordered as individual modules. If you only need a simple website, you do not need to pay for features that you will never use. If, later on, you want to add online booking, payments, an online shop, or another feature, the system can be expanded.',
-          'Our pricing is transparent. **The price shown on our website is the price we charge.** When the contract is agreed and development begins, we ask for only **20% of the agreed total price**. This covers the initial technical costs of the project, such as domain registration, hosting, database services, and other technical requirements. The remaining amount is invoiced when the completed system is delivered and ready for use.',
+          'Our pricing is transparent. **The price shown on our website is the price we charge.** When the contract is agreed and work begins, you first pay only the first year\'s fee for your **domain**, **hosting**, and **database** — a one-off cost covering the first year of all three. We arrange this for you and hand over access when it is ready. That money is paid to separate providers, independent of building the website; it is **20%** of the total price. The website itself — development and design, the remaining **80%** — is invoiced only when we hand it over.',
           'Of course, requirements can change during development. If you decide that you need an additional feature, it can be added. If something needs to be changed, we can discuss it and adjust the project accordingly.',
         ],
       },
@@ -360,10 +377,19 @@ export const copies: Record<Locale, Copy> = {
       { n: '03', title: 'We build', text: 'You see it as we go. No months of silence.' },
       { n: '04', title: 'We stay', text: 'If something breaks or you want more, there is someone to call.' },
     ],
-    payNow: '20%',
-    payLater: '80%',
-    payNowNote: 'When we start. Domain, hosting, the work begins.',
-    payLaterNote: 'When we hand it over, and you can use it.',
+    paySteps: [
+      {
+        lead: 'Payable at the start:',
+        share: '20% of the full price',
+        detail:
+          'This covers one year of domain, hosting and database server fees, plus administration. The access details for these become yours.',
+      },
+      {
+        lead: 'Payable at handover:',
+        share: '80% of the full price',
+        detail: 'This covers development, design and configuration.',
+      },
+    ],
     payLine: "YOU DON'T HAVE TO PAY ALL AT ONCE",
     helpLine: 'YOU CAN CHOOSE FROM SEVERAL OPTIONS',
     journeyLine: 'YOU CAN FOLLOW THE WHOLE PROCESS',

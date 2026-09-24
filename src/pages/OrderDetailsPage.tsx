@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { OrderSteps } from '../components/OrderSteps'
 import { PageHero } from '../components/PageHero'
@@ -6,8 +6,6 @@ import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
 import { api } from '../lib/api'
 import { useOrder } from '../lib/useOrder'
-
-const palettes = ['ink-red', 'ink-blue', 'ink-yellow', 'green', 'us'] as const
 
 export function OrderDetailsPage() {
   const { token } = useParams()
@@ -17,12 +15,19 @@ export function OrderDetailsPage() {
   const { order, error } = useOrder(token)
   const [logoMode, setLogoMode] = useState<'upload' | 'us'>('us')
 
+  useEffect(() => {
+    if (order?.details?.logoMode) setLogoMode(order.details.logoMode)
+  }, [order])
+
   if (error || !order) return <PageHero title={t.details}>{t.needAccept}</PageHero>
   if (order.status === 'enquiry' || order.status === 'declined') {
     return <PageHero title={t.details}>{order.status === 'declined' ? t.declined : t.waiting}</PageHero>
   }
 
   const site = order.selection.siteId || order.enquiry.siteType
+  const legacyPalettes = new Set(['ink-red', 'ink-blue', 'ink-yellow', 'green', 'us'])
+  const colorDefault =
+    order.details?.palette && !legacyPalettes.has(order.details.palette) ? order.details.palette : ''
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -34,7 +39,9 @@ export function OrderDetailsPage() {
 
   return (
     <div className="page-enter">
-      <PageHero title={t.details} />
+      <PageHero title={t.details}>
+        <p className="font-bold">{t.detailsCustomNote}</p>
+      </PageHero>
       <section className="bg-wash pb-24">
         <div className="page-wrap max-w-3xl">
           <OrderSteps token={order.token} current="details" />
@@ -55,14 +62,12 @@ export function OrderDetailsPage() {
             </div>
             {logoMode === 'upload' ? <input type="file" name="logo" accept="image/*" className="field" /> : null}
 
-            <p className="mt-4 font-extrabold">{t.palette}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {palettes.map((id) => (
-                <label key={id} className="tick">
-                  <input type="radio" name="palette" value={id} defaultChecked={(order.details?.palette || 'us') === id} />
-                  <span>{t.palettes[id]}</span>
-                </label>
-              ))}
+            <input name="colors" placeholder={t.websiteColors} className="field" defaultValue={colorDefault} />
+
+            <div className="grid gap-2">
+              <p className="font-extrabold">{t.referenceImages}</p>
+              <input type="file" name="reference1" accept="image/*" className="field" />
+              <input type="file" name="reference2" accept="image/*" className="field" />
             </div>
 
             <textarea name="content" rows={5} placeholder={t.content} className="field resize-y" defaultValue={order.details?.content} />

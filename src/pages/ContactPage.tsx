@@ -1,14 +1,28 @@
 import { useState, type FormEvent } from 'react'
 import { company } from '../data'
 import { useLocale } from '../i18n/locale'
+import { api } from '../lib/api'
 
 export function ContactPage() {
-  const { copy } = useLocale()
+  const { copy, locale } = useLocale()
   const [sent, setSent] = useState(false)
+  const [error, setError] = useState(false)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSent(true)
+    const data = new FormData(event.currentTarget)
+    setError(false)
+    try {
+      await api.createOrder({
+        name: String(data.get('name') || ''),
+        email: String(data.get('email') || ''),
+        message: String(data.get('message') || ''),
+        locale,
+      })
+      setSent(true)
+    } catch {
+      setError(true)
+    }
   }
 
   return (
@@ -45,6 +59,7 @@ export function ContactPage() {
               <input required name="name" placeholder={copy.name} className="field" />
               <input required type="email" name="email" placeholder={copy.email} className="field" />
               <textarea required name="message" placeholder={copy.message} rows={6} className="field resize-y" />
+              {error ? <p className="font-bold text-brand">…</p> : null}
               <button type="submit" className="btn-primary mt-2 w-fit">
                 {copy.send}
               </button>

@@ -191,15 +191,13 @@ export const hours = [
 ]
 
 export const company = {
-  name: 'Takemo',
-  legal: 'Take Mee Online',
-  brand: 'Take Mee Online',
+  name: 'Takemo Ltd',
   phoneMarketing: '+44 1643 000000',
   phoneSupport: '+44 1643 000000',
   email: 'gabor.pinter@pmonline.hu',
   marketingEmail: 'hello@takemo.co.uk',
-  office: 'Minehead, Somerset, United Kingdom',
-  hq: 'Minehead, United Kingdom',
+  office: 'Minehead, Somerset United Kingdom',
+  hq: 'Minehead, Somerset United Kingdom',
   hours: 'weekdays 9:00–17:00',
   site: 'takemo.co.uk',
 }

@@ -1,17 +1,20 @@
 import { Link, useParams } from 'react-router-dom'
+import { OrderPreviewPanel } from '../components/OrderPreviewPanel'
 import { OrderSteps } from '../components/OrderSteps'
 import { PageHero } from '../components/PageHero'
 import { PriceBox } from '../components/PriceBox'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
-import { contractUrl, invoiceUrl } from '../lib/api'
+import { contractUrl, handoverUrl, invoiceUrl } from '../lib/api'
+import { hasHandover } from '../lib/handover'
+import { previewActive, previewApproved } from '../lib/preview'
 import { useOrder } from '../lib/useOrder'
 
 export function OrderHubPage() {
   const { token } = useParams()
   const { locale } = useLocale()
   const t = shopCopy(locale)
-  const { order, error } = useOrder(token)
+  const { order, setOrder, error } = useOrder(token)
 
   if (error || !order) {
     return (
@@ -28,9 +31,11 @@ export function OrderHubPage() {
         ? `/order/${order.token}/modules`
         : order.status === 'review'
           ? `/order/${order.token}/review`
-          : order.status === 'ready' || order.status === 'paid' || order.status === 'delivered'
-            ? `/order/${order.token}/pay`
-            : ''
+          : order.status === 'paid' && !previewApproved(order)
+            ? `/order/${order.token}/preview`
+            : order.status === 'ready' || order.status === 'paid' || order.status === 'delivered'
+              ? `/order/${order.token}/pay`
+              : ''
 
   return (
     <div className="page-enter">
@@ -43,13 +48,19 @@ export function OrderHubPage() {
             {order.status === 'declined' ? t.declined : null}
             {order.status === 'accepted' ? t.accepted : null}
             {order.status === 'paid' ? t.paid : null}
+            {order.depositPending || order.balancePending ? t.paymentPending : null}
+            {order.status === 'delivered' && order.balanceDue && !order.balancePaidAt && !order.balancePending
+              ? t.paymentSent
+              : null}
+            {order.status === 'paid' && previewApproved(order) ? t.previewApproved : null}
           </p>
           <div className="mt-8">
             <PriceBox totals={order.totals} />
           </div>
+          {previewActive(order) ? <OrderPreviewPanel order={order} onUpdate={setOrder} /> : null}
           {next ? (
             <Link to={next} className="btn-primary mt-8">
-              {t.continue}
+              {order.status === 'paid' && !previewApproved(order) ? t.previewTitle : t.continue}
             </Link>
           ) : null}
           {order.status === 'paid' || order.status === 'delivered' ? (
@@ -57,10 +68,17 @@ export function OrderHubPage() {
               {t.contract}
             </a>
           ) : null}
-          {order.status === 'delivered' ? (
-            <a href={invoiceUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
-              {t.invoice}
-            </a>
+          {order.status === 'delivered' && order.balancePaidAt ? (
+            <>
+              <a href={invoiceUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
+                {t.invoice}
+              </a>
+              {hasHandover(order) ? (
+                <a href={handoverUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
+                  {t.handoverDoc}
+                </a>
+              ) : null}
+            </>
           ) : null}
         </div>
       </section>

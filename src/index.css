@@ -286,6 +286,59 @@ body {
   animation: cta-float 3.2s ease-in-out infinite;
 }
 
+.hero-note {
+  animation:
+    hero-note-in 0.9s 2.5s both,
+    hero-note-float 4.5s 3.8s ease-in-out infinite;
+}
+
+.hero-note-lead {
+  font-size: clamp(1.15rem, 2.8vw, 2rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ee1c25;
+  text-shadow: 0 2px 18px rgb(238 28 37 / 0.28);
+}
+
+.hero-note-detail {
+  margin-top: 0.75rem;
+  font-size: clamp(1.2rem, 2.8vw, 2rem);
+  font-weight: 800;
+  line-height: 1.35;
+  color: #1c1f2a;
+}
+
+.hero-note-accent {
+  color: #0088ff;
+}
+
+@keyframes hero-note-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  70% {
+    transform: translateY(-4px) scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hero-note-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 @keyframes flip-in {
   from {
     opacity: 0;
@@ -943,55 +996,41 @@ html.is-hero-lift .site-header {
   }
 }
 
-.pay-block {
-  display: grid;
-  place-items: center;
-  min-width: 0;
-  min-height: 280px;
-  color: #fff;
-  text-align: center;
-  container-type: inline-size;
-  transition:
-    transform 0.95s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.95s ease;
+.pay-explain {
+  max-width: 48rem;
 }
 
-.pay-from-left {
-  opacity: 0;
-  transform: translateX(-40%);
+.pay-explain-block {
+  padding-top: 2rem;
+  border-top: 1px solid rgb(255 255 255 / 0.14);
 }
 
-.pay-from-right {
-  opacity: 0;
-  transform: translateX(40%);
+.pay-explain-block.is-first {
+  padding-top: 0;
+  border-top: 0;
 }
 
-.pay-slide.is-in .pay-from-left,
-.pay-slide.is-in .pay-from-right {
-  opacity: 1;
-  transform: none;
+.pay-explain-lead {
+  font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+  font-weight: 600;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.92);
 }
 
-.pay-slide.is-in .pay-block:hover {
-  transform: scale(1.03);
-}
-
-.pay-num {
-  font-size: clamp(2.4rem, 42cqi, 9rem);
+.pay-explain-share {
+  margin-top: 1rem;
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
   font-weight: 800;
-  line-height: 0.9;
+  line-height: 1.05;
 }
 
-@media (max-width: 767px) {
-  .pay-num {
-    font-size: clamp(2.4rem, 22cqi, 4rem);
-  }
-
-  .pay-block-sm {
-    width: 100%;
-    min-height: 168px;
-    padding-block: 1.35rem;
-  }
+.pay-explain-detail {
+  margin-top: 1rem;
+  max-width: 42rem;
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  font-weight: 500;
+  line-height: 1.65;
+  color: rgb(255 255 255 / 0.78);
 }
 
 .giant-line {

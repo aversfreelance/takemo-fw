@@ -35,6 +35,8 @@ export type Order = {
     logoMode: 'upload' | 'us'
     logoFile: string
     palette: string
+    referenceFile1?: string
+    referenceFile2?: string
     content: string
     products: string
     frequency: string
@@ -49,8 +51,31 @@ export type Order = {
   totals: { net: number; vat: number; gross: number; deposit: number; remainder: number; vatRate?: number; currency?: 'GBP' | 'HUF' }
   adminNote: string
   paidAt: string | null
+  readyAt?: string | null
   deliveredAt: string | null
+  balancePaidAt: string | null
+  balanceDue: boolean
+  balanceDueAt?: string | null
+  depositPending?: boolean
+  balancePending?: boolean
+  handover?: string
+  previewUrl?: string
+  previewSentAt?: string | null
+  previewApprovedAt?: string | null
+  previewFeedback?: string | null
+  previewRound?: number
   stripeEnabled: boolean
+}
+
+export type PayCheck = { order: Order; checkout?: 'succeeded' | 'failed' }
+
+export type CompanyProfile = {
+  name: string
+  address: string
+  email: string
+  website: string
+  companyNumber: string
+  vatNumber: string
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -82,17 +107,32 @@ export const api = {
     request<Order>(`/api/orders/${token}/selection`, { method: 'POST', body: JSON.stringify(body) }),
   submitReview: (token: string) =>
     request<Order>(`/api/orders/${token}/review`, { method: 'POST' }),
-  checkout: (token: string) =>
-    request<{ url: string }>(`/api/orders/${token}/checkout`, { method: 'POST' }),
+  approvePreview: (token: string) =>
+    request<Order>(`/api/orders/${token}/preview/approve`, { method: 'POST' }),
+  requestPreviewChanges: (token: string, feedback: string) =>
+    request<Order>(`/api/orders/${token}/preview/changes`, {
+      method: 'POST',
+      body: JSON.stringify({ feedback }),
+    }),
+  checkout: (token: string, kind: 'deposit' | 'balance' = 'deposit') =>
+    request<{ url: string }>(`/api/orders/${token}/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({ kind }),
+    }),
+  confirmPay: (token: string) =>
+    request<PayCheck>(`/api/orders/${token}/confirm-pay`, { method: 'POST' }),
   demoPay: (token: string) => request<Order>(`/api/orders/${token}/demo-pay`, { method: 'POST' }),
   login: (password: string) =>
     request<{ token: string }>('/api/admin/login', { method: 'POST', body: JSON.stringify({ password }) }),
   listOrders: () => request<Order[]>('/api/admin/orders'),
-  act: (id: string, action: string, note = '') =>
-    request<Order>(`/api/admin/orders/${id}/${action}`, { method: 'POST', body: JSON.stringify({ note }) }),
+  act: (id: string, action: string, body?: { text?: string; note?: string; previewUrl?: string }) =>
+    request<Order>(`/api/admin/orders/${id}/${action}`, { method: 'POST', body: JSON.stringify(body || {}) }),
   getCatalog: () => request<Catalog>('/api/catalog'),
   saveCatalog: (catalog: Catalog) =>
     request<Catalog>('/api/admin/catalog', { method: 'PUT', body: JSON.stringify(catalog) }),
+  getCompany: () => request<CompanyProfile>('/api/admin/company'),
+  saveCompany: (body: CompanyProfile) =>
+    request<CompanyProfile>('/api/admin/company', { method: 'PUT', body: JSON.stringify(body) }),
   register: (body: { name: string; email: string; password: string }) =>
     request<{ token: string; user: AuthUser }>('/api/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   userLogin: (body: { email: string; password: string }) =>
@@ -113,4 +153,8 @@ export function contractUrl(token: string) {
 
 export function invoiceUrl(token: string) {
   return `/api/orders/${token}/invoice.pdf`
+}
+
+export function handoverUrl(token: string) {
+  return `/api/orders/${token}/handover.pdf`
 }
