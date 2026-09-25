@@ -1280,13 +1280,16 @@ html.is-hero-lift .site-header {
 }
 
 .price-box {
-  position: sticky;
-  top: 1.2rem;
   padding: 1.4rem 1.3rem;
   border: 3px solid #1c1f2a;
   border-radius: 18px;
   background: #1c1f2a;
   color: #fff;
+}
+
+.price-box.is-sticky {
+  position: sticky;
+  top: 1.2rem;
 }
 
 .price-box p {

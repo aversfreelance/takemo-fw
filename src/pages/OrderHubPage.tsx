@@ -5,8 +5,9 @@ import { PageHero } from '../components/PageHero'
 import { PriceBox } from '../components/PriceBox'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
-import { contractUrl, handoverUrl, invoiceUrl } from '../lib/api'
+import { contractUrl, depositInvoiceUrl, handoverUrl, invoiceUrl } from '../lib/api'
 import { hasHandover } from '../lib/handover'
+import { canPayDeposit, depositConfirmed } from '../lib/orderStatus'
 import { previewActive, previewApproved } from '../lib/preview'
 import { useOrder } from '../lib/useOrder'
 
@@ -29,13 +30,15 @@ export function OrderHubPage() {
       ? `/order/${order.token}/details`
       : order.status === 'details'
         ? `/order/${order.token}/modules`
-        : order.status === 'review'
-          ? `/order/${order.token}/review`
+        : canPayDeposit(order) || order.depositPending
+          ? `/order/${order.token}/modules`
           : order.status === 'paid' && !previewApproved(order)
-            ? `/order/${order.token}/preview`
-            : order.status === 'ready' || order.status === 'paid' || order.status === 'delivered'
-              ? `/order/${order.token}/pay`
-              : ''
+              ? `/order/${order.token}/preview`
+              : order.status === 'delivered' && order.balanceDue && !order.balancePaidAt
+                ? `/order/${order.token}/pay`
+                : order.status === 'paid' || order.status === 'delivered'
+                  ? `/order/${order.token}/review`
+                  : ''
 
   return (
     <div className="page-enter">
@@ -63,10 +66,15 @@ export function OrderHubPage() {
               {order.status === 'paid' && !previewApproved(order) ? t.previewTitle : t.continue}
             </Link>
           ) : null}
-          {order.status === 'paid' || order.status === 'delivered' ? (
-            <a href={contractUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
-              {t.contract}
-            </a>
+          {depositConfirmed(order) ? (
+            <>
+              <a href={contractUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
+                {t.contract}
+              </a>
+              <a href={depositInvoiceUrl(order.token)} className="btn-outline mt-4 ml-3" target="_blank" rel="noreferrer">
+                {t.depositInvoice}
+              </a>
+            </>
           ) : null}
           {order.status === 'delivered' && order.balancePaidAt ? (
             <>

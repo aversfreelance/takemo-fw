@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
 import { api, type Order } from '../lib/api'
+import { canPayBalance } from '../lib/orderStatus'
 import { canViewPreview, previewApproved, previewWaitingChanges } from '../lib/preview'
 
 export function OrderPreviewPanel({ order, onUpdate }: { order: Order; onUpdate: (order: Order) => void }) {
@@ -37,6 +39,12 @@ export function OrderPreviewPanel({ order, onUpdate }: { order: Order; onUpdate:
       <h2 className="text-xl font-extrabold">{t.previewTitle}</h2>
       <p className="font-bold text-muted">{t.previewLead}</p>
       {approved ? <p className="font-extrabold text-[#15803d]">{t.previewApproved}</p> : null}
+      {approved && order.balancePending ? <p className="font-extrabold">{t.paymentPending}</p> : null}
+      {approved && canPayBalance(order) && !order.balancePending ? (
+        <Link to={`/order/${order.token}/pay`} className="btn-primary inline-flex w-fit">
+          {t.payCard} — {t.remainder}
+        </Link>
+      ) : null}
       {waiting ? <p className="font-extrabold text-brand">{t.previewChangesSent}</p> : null}
       {!approved && !waiting && !open ? <p className="font-bold">{t.previewWaitingSend}</p> : null}
       {open && !approved ? (

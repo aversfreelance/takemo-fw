@@ -22,8 +22,10 @@ async function migrate(db) {
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL DEFAULT '',
     google_id TEXT NOT NULL DEFAULT '',
+    admin BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`
+  await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS admin BOOLEAN NOT NULL DEFAULT false`
   await db`CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,

@@ -4,15 +4,17 @@ import { shopCopy } from '../i18n/shop'
 
 export function PriceBox({
   totals,
+  sticky = true,
 }: {
   totals: { net: number; vat: number; gross: number; deposit: number; remainder: number; vatRate?: number }
+  sticky?: boolean
 }) {
   const { locale } = useLocale()
   const t = shopCopy(locale)
   const vatPct = Math.round((totals.vatRate ?? (locale === 'hu' ? 0.27 : 0.2)) * 100)
 
   return (
-    <aside className="price-box">
+    <aside className={`price-box${sticky ? ' is-sticky' : ''}`}>
       <p>
         <span>{t.total}</span>
         <strong>{formatMoney(totals.net, locale)}</strong>

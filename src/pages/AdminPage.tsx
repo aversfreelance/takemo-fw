@@ -1,29 +1,25 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { AdminCatalog } from '../components/AdminCatalog'
 import { AdminCompany } from '../components/AdminCompany'
 import { formatMoney } from '../lib/money'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
-import { api, contractUrl, handoverUrl, invoiceUrl, type Order } from '../lib/api'
+import { api, contractUrl, handoverUrl, invoiceUrl, type AdminUser, type Order } from '../lib/api'
 import { handoverText, hasHandover } from '../lib/handover'
-import { orderCardClass } from '../lib/orderStatus'
-import { useAuth } from '../lib/auth'
+import { canPayDeposit, orderCardClass } from '../lib/orderStatus'
 
 export function AdminPage() {
   const { locale } = useLocale()
   const t = shopCopy(locale)
-  const { user } = useAuth()
-  const [password, setPassword] = useState('')
-  const [authed, setAuthed] = useState(Boolean(user?.admin || sessionStorage.getItem('takemo-admin')))
   const [orders, setOrders] = useState<Order[]>([])
-  const [tab, setTab] = useState<'prices' | 'orders' | 'company'>('orders')
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [tab, setTab] = useState<'prices' | 'orders' | 'company' | 'users'>('orders')
   const [askPaid, setAskPaid] = useState<{ id: string; step: 1 | 2 } | null>(null)
   const [actError, setActError] = useState('')
   const [handover, setHandover] = useState<Record<string, string>>({})
   const [previewUrl, setPreviewUrl] = useState<Record<string, string>>({})
 
-  async function load() {
+  async function loadOrders() {
     const next = await api.listOrders()
     setOrders(next)
     setHandover((current) => {
@@ -42,24 +38,17 @@ export function AdminPage() {
     })
   }
 
-  useEffect(() => {
-    if (user?.admin) setAuthed(true)
-  }, [user])
-
-  useEffect(() => {
-    if (authed) void load().catch(() => setAuthed(false))
-  }, [authed])
-
-  if (user && !user.admin && !sessionStorage.getItem('takemo-admin')) {
-    return <Navigate to="/" replace />
+  async function loadUsers() {
+    setUsers(await api.listUsers())
   }
 
-  async function login(event: FormEvent) {
-    event.preventDefault()
-    const { token } = await api.login(password)
-    sessionStorage.setItem('takemo-admin', token)
-    setAuthed(true)
-  }
+  useEffect(() => {
+    void loadOrders().catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'users') void loadUsers().catch(() => undefined)
+  }, [tab])
 
   function handoverFor(id: string) {
     return handover[id] || ''
@@ -73,34 +62,20 @@ export function AdminPage() {
     setActError('')
     try {
       await api.act(id, action, { text: handoverFor(id), previewUrl: previewFor(id), ...body })
-      await load()
+      await loadOrders()
       setAskPaid(null)
     } catch {
       setActError(action)
     }
   }
 
-  const asking = askPaid ? orders.find((item) => item.id === askPaid.id) : null
-
-  if (!authed) {
-    return (
-      <section className="page-enter bg-wash pt-36 pb-24">
-        <form className="page-wrap max-w-md" onSubmit={(event) => void login(event)}>
-          <h1 className="section-title left">{t.admin}</h1>
-          <input
-            type="password"
-            className="field mt-8"
-            placeholder={t.password}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-          <button type="submit" className="btn-primary mt-4">
-            {t.login}
-          </button>
-        </form>
-      </section>
-    )
+  async function toggleAdmin(user: AdminUser) {
+    if (user.superuser) return
+    await api.setUserAdmin(user.id, !user.admin)
+    await loadUsers()
   }
+
+  const asking = askPaid ? orders.find((item) => item.id === askPaid.id) : null
 
   return (
     <section className="page-enter bg-wash pt-36 pb-24">
@@ -116,10 +91,32 @@ export function AdminPage() {
           <button type="button" className={tab === 'company' ? 'btn-primary' : 'btn-outline'} onClick={() => setTab('company')}>
             {t.company}
           </button>
+          <button type="button" className={tab === 'users' ? 'btn-primary' : 'btn-outline'} onClick={() => setTab('users')}>
+            {t.admins}
+          </button>
         </div>
         {actError ? <p className="mt-6 font-extrabold text-brand">…</p> : null}
         {tab === 'prices' ? <AdminCatalog /> : null}
         {tab === 'company' ? <AdminCompany /> : null}
+        {tab === 'users' ? (
+          <div className="mt-10 grid gap-3">
+            {users.map((user) => (
+              <article key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border-[3px] border-ink bg-white p-5">
+                <div>
+                  <p className="font-extrabold">{user.name}</p>
+                  <p className="text-sm font-bold text-muted">{user.email}</p>
+                </div>
+                {user.superuser ? (
+                  <span className="text-sm font-extrabold uppercase tracking-[0.12em] text-brand">{t.superAdmin}</span>
+                ) : (
+                  <button type="button" className={user.admin ? 'btn-primary' : 'btn-outline'} onClick={() => void toggleAdmin(user)}>
+                    {user.admin ? t.removeAdmin : t.giveAdmin}
+                  </button>
+                )}
+              </article>
+            ))}
+          </div>
+        ) : null}
         {tab === 'orders' ? (
         <div className="mt-10 grid gap-4">
           {orders.map((order) => (
@@ -137,10 +134,10 @@ export function AdminPage() {
                 {formatMoney(order.totals.remainder, order.locale)}
               </p>
               {order.depositPending ? (
-                <p className="mt-4 font-extrabold text-brand">{t.paymentPending} — 20%</p>
+                <p className="mt-4 font-extrabold text-[#15803d]">✓ {t.paymentReceived} — 20%</p>
               ) : null}
               {order.balancePending ? (
-                <p className="mt-4 font-extrabold text-brand">{t.paymentPending} — 80%</p>
+                <p className="mt-4 font-extrabold text-[#15803d]">✓ {t.paymentReceived} — 80%</p>
               ) : null}
               {order.status === 'paid' ? (
                 <div className="mt-5 grid gap-3">
@@ -218,7 +215,7 @@ export function AdminPage() {
                     {t.paymentReceived}
                   </button>
                 ) : null}
-                {order.status === 'ready' && !order.depositPending ? (
+                {canPayDeposit(order) && !order.depositPending ? (
                   <button type="button" className="btn-outline" onClick={() => void act(order.id, 'paid')}>
                     {t.demoPay}
                   </button>

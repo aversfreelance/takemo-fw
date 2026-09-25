@@ -1,10 +1,11 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { OrderPreviewPanel } from '../components/OrderPreviewPanel'
 import { OrderSteps } from '../components/OrderSteps'
 import { PageHero } from '../components/PageHero'
 import { PriceBox } from '../components/PriceBox'
 import { useLocale } from '../i18n/locale'
 import { shopCopy } from '../i18n/shop'
+import { canPayDeposit, depositConfirmed } from '../lib/orderStatus'
 import { previewActive } from '../lib/preview'
 import { useOrder } from '../lib/useOrder'
 
@@ -15,6 +16,9 @@ export function OrderReviewPage() {
   const { order, setOrder, error } = useOrder(token)
 
   if (error || !order) return <PageHero title={t.review}>{t.needAccept}</PageHero>
+  if (!previewActive(order) && (canPayDeposit(order) || order.depositPending || !depositConfirmed(order))) {
+    return <Navigate to={`/order/${order.token}/modules`} replace />
+  }
 
   return (
     <div className="page-enter">
@@ -61,12 +65,8 @@ export function OrderReviewPage() {
               <div className="mt-8">
                 <PriceBox totals={order.totals} />
               </div>
+              {order.depositPending ? <p className="mt-8 font-bold">{t.paymentPending}</p> : null}
               <p className="mt-8 font-bold">{t.status[order.status]}</p>
-              {order.status === 'ready' ? (
-                <Link to={`/order/${order.token}/pay`} className="btn-primary mt-6">
-                  {t.pay}
-                </Link>
-              ) : null}
             </>
           )}
         </div>

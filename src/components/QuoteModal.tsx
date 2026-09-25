@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useLocale } from '../i18n/locale'
+import { shopCopy } from '../i18n/shop'
 import { api } from '../lib/api'
+import { useAuth } from '../lib/auth'
 
 type Props = {
   open: boolean
@@ -9,6 +12,8 @@ type Props = {
 
 export function QuoteModal({ open, onClose }: Props) {
   const { copy, locale } = useLocale()
+  const t = shopCopy(locale)
+  const { user } = useAuth()
   const [sent, setSent] = useState(false)
   const [error, setError] = useState(false)
 
@@ -16,6 +21,7 @@ export function QuoteModal({ open, onClose }: Props) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!user) return
     const data = new FormData(event.currentTarget)
     setError(false)
     try {
@@ -45,6 +51,13 @@ export function QuoteModal({ open, onClose }: Props) {
 
         {sent ? (
           <p className="mt-8 rounded-xl bg-wash px-4 py-6 text-center font-medium">{copy.sent}</p>
+        ) : !user ? (
+          <div className="mt-8 grid gap-4">
+            <p className="font-bold">{t.needAccount}</p>
+            <Link to="/login?next=/start" className="btn-primary text-center" onClick={onClose}>
+              {t.login}
+            </Link>
+          </div>
         ) : (
           <form className="mt-6 grid gap-3" onSubmit={handleSubmit}>
             <input required name="name" placeholder={copy.name} className="field" />

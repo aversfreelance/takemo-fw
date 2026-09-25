@@ -1,6 +1,7 @@
 import type { Catalog } from '../catalog'
 
 export type AuthUser = { id: string; email: string; name: string; admin: boolean }
+export type AdminUser = AuthUser & { superuser?: boolean }
 
 export type OrderStatus =
   | 'enquiry'
@@ -80,9 +81,7 @@ export type CompanyProfile = {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers)
-  const admin = sessionStorage.getItem('takemo-admin')
   const user = localStorage.getItem('takemo-user')
-  if (admin) headers.set('x-admin-token', admin)
   if (user) headers.set('x-user-token', user)
   if (init?.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
@@ -122,8 +121,12 @@ export const api = {
   confirmPay: (token: string) =>
     request<PayCheck>(`/api/orders/${token}/confirm-pay`, { method: 'POST' }),
   demoPay: (token: string) => request<Order>(`/api/orders/${token}/demo-pay`, { method: 'POST' }),
-  login: (password: string) =>
-    request<{ token: string }>('/api/admin/login', { method: 'POST', body: JSON.stringify({ password }) }),
+  listUsers: () => request<AdminUser[]>('/api/admin/users'),
+  setUserAdmin: (id: string, admin: boolean) =>
+    request<AuthUser>(`/api/admin/users/${id}/admin`, {
+      method: admin ? 'POST' : 'DELETE',
+      body: JSON.stringify({ admin }),
+    }),
   listOrders: () => request<Order[]>('/api/admin/orders'),
   act: (id: string, action: string, body?: { text?: string; note?: string; previewUrl?: string }) =>
     request<Order>(`/api/admin/orders/${id}/${action}`, { method: 'POST', body: JSON.stringify(body || {}) }),
@@ -153,6 +156,10 @@ export function contractUrl(token: string) {
 
 export function invoiceUrl(token: string) {
   return `/api/orders/${token}/invoice.pdf`
+}
+
+export function depositInvoiceUrl(token: string) {
+  return `/api/orders/${token}/deposit-invoice.pdf`
 }
 
 export function handoverUrl(token: string) {

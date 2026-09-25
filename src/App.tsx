@@ -7,7 +7,7 @@ import { ReviewModal } from './components/ReviewModal'
 import { ScrollToTop } from './components/ScrollToTop'
 import { UiProvider, useModalState } from './context/ui'
 import { CatalogProvider } from './catalog/CatalogProvider'
-import { RequireAuth } from './components/RequireAuth'
+import { RequireAdmin, RequireAuth } from './components/RequireAuth'
 import { LocaleProvider } from './i18n/locale'
 import { AuthProvider } from './lib/auth'
 import { AdminPage } from './pages/AdminPage'
@@ -72,7 +72,14 @@ function Shell() {
                   </RequireAuth>
                 }
               />
-              <Route path="/start" element={<StartPage />} />
+              <Route
+                path="/start"
+                element={
+                  <RequireAuth>
+                    <StartPage />
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/order/:token"
                 element={
@@ -121,12 +128,26 @@ function Shell() {
                   </RequireAuth>
                 }
               />
-              <Route path="/admin" element={<AdminPage />} />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAdmin>
+                    <AdminPage />
+                  </RequireAdmin>
+                }
+              />
               <Route path="/quote" element={<Navigate to="/start" replace />} />
               <Route path="/management" element={<ManagementPage />} />
               <Route path="/maintenance" element={<MaintenancePage />} />
               <Route path="/book" element={<BookingPage />} />
-              <Route path="/contact" element={<ContactPage />} />
+              <Route
+                path="/contact"
+                element={
+                  <RequireAuth>
+                    <ContactPage />
+                  </RequireAuth>
+                }
+              />
               <Route path="/insights" element={<InsightsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/szolgaltatasok" element={<Navigate to="/what-we-do" replace />} />

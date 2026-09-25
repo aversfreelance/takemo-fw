@@ -129,3 +129,46 @@ export async function contractPdf(order) {
 export async function invoicePdf(order) {
   return writeDoc(order, 'invoice', await getCompany())
 }
+
+export async function depositInvoicePdf(order) {
+  const company = await getCompany()
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 48 })
+    const chunks = []
+    doc.on('data', (chunk) => chunks.push(chunk))
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+    doc.on('error', reject)
+
+    const who = order.details || {}
+    const t = order.totals
+    const vatPct = Math.round((t.vatRate || 0.2) * 100)
+    const depositNet = Math.round(t.deposit / (1 + (t.vatRate || 0.2)))
+    const depositVat = t.deposit - depositNet
+
+    doc.fillColor('#ee1c25').fontSize(22).text(company.name)
+    doc.fillColor('#1c1f2a').fontSize(16).text('INVOICE / SZÁMLA — 20% DEPOSIT')
+    doc.moveDown()
+    doc.fontSize(11).fillColor('#1c1f2a')
+    doc.text(`Order: ${order.id}`)
+    doc.text(`Date: ${new Date(order.paidAt || Date.now()).toLocaleDateString('en-GB')}`)
+    doc.text(`${company.website} · ${company.address}`)
+    doc.text(company.email)
+    if (company.companyNumber) doc.text(`Company no. / cégjegyzékszám: ${company.companyNumber}`)
+    if (company.vatNumber) doc.text(`VAT / adószám: ${company.vatNumber}`)
+    doc.moveDown()
+    doc.fontSize(12).text(who.businessName || order.enquiry.name)
+    if (who.address) doc.text(who.address)
+    if (who.vatNumber) doc.text(`VAT / adószám: ${who.vatNumber}`)
+    doc.text(order.enquiry.email)
+    doc.moveDown()
+    doc.text('20% deposit — domain, hosting, database (1 year), administration')
+    doc.moveDown()
+    doc.text(`Net: ${money(order, depositNet)}`)
+    doc.text(`VAT / ÁFA ${vatPct}%: ${money(order, depositVat)}`)
+    doc.fontSize(13).text(`Total: ${money(order, t.deposit)}`)
+    doc.fontSize(11).moveDown()
+    doc.text(`Remainder on handover: ${money(order, t.remainder)}`)
+
+    doc.end()
+  })
+}

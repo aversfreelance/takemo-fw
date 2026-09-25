@@ -1,19 +1,20 @@
-import { randomBytes } from 'node:crypto'
 import cors from 'cors'
 import express from 'express'
 import multer from 'multer'
 import Stripe from 'stripe'
 import { getCompany, saveCompany } from './company.js'
-import { invoicePdf, contractPdf, handoverPdf } from './pdf.js'
-import { addAdminToken, getById, getByToken, hasAdminToken, putOrder, allOrders, ordersByUser, uid } from './store.js'
+import { invoicePdf, contractPdf, handoverPdf, depositInvoicePdf } from './pdf.js'
+import { getById, getByToken, putOrder, allOrders, ordersByUser, uid } from './store.js'
 import { computeTotals, getCatalog, saveCatalog } from './totals.js'
 import { notifyNewMessage, notifyPaymentDue, notifyPreviewReady, notifyPreviewChanges } from './mail.js'
 import {
   dropSession,
   googleFromCredential,
+  listUsers,
   loginUser,
   publicUser,
   registerUser,
+  setUserAdmin,
   userFromToken,
 } from './users.js'
 
@@ -22,11 +23,16 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
 })
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'takemo-admin'
 const PUBLIC_URL =
   process.env.PUBLIC_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173')
+function publicUrlForOrder(order) {
+  const base = PUBLIC_URL
+  if (base.includes('localhost') || base.includes('127.0.0.1')) return base
+  if (order?.locale === 'hu') return process.env.PUBLIC_URL_HU || 'https://takemo.hu'
+  return process.env.PUBLIC_URL_EN || process.env.PUBLIC_URL || 'https://takemo.co.uk'
+}
 function getStripe() {
   const secret = process.env.STRIPE_SECRET_KEY || ''
   return secret ? new Stripe(secret) : null
@@ -101,8 +107,8 @@ function requireUser(req, res, next) {
   next()
 }
 
-async function requireAdmin(req, res, next) {
-  if ((await hasAdminToken(req.get('x-admin-token'))) || req.user?.admin) {
+function requireAdmin(req, res, next) {
+  if (req.user?.admin) {
     next()
     return
   }
@@ -136,8 +142,27 @@ function applyHandover(order, body = {}) {
   if (body.text != null) order.handover = String(body.text)
 }
 
+function stripeClientName(order) {
+  return String(order.details?.businessName || order.enquiry?.name || 'Order').trim()
+}
+
+function stripePaymentLine(order, kind, co) {
+  const client = stripeClientName(order)
+  const isBalance = kind === 'balance'
+  return {
+    name: `${client} · ${order.id} · ${isBalance ? '80% balance' : '20% deposit'}`,
+    description: isBalance
+      ? `${co.name} — handover (development, design, configuration)`
+      : `${co.name} — deposit (domain, hosting, database)`,
+  }
+}
+
+function canPayDeposit(order) {
+  return order && ['review', 'ready'].includes(order.status) && !order.paidAt
+}
+
 async function markPaid(order) {
-  if (!order || order.status !== 'ready') return order
+  if (!canPayDeposit(order)) return order
   order.status = 'paid'
   order.paidAt = new Date().toISOString()
   return putOrder(order)
@@ -171,7 +196,7 @@ export function createApi() {
             order.balancePending = true
             await putOrder(order)
           }
-        } else if (order && kind !== 'balance' && order.status === 'ready') {
+        } else if (order && kind !== 'balance' && canPayDeposit(order)) {
           const expected = stripeAmount(order.totals.deposit, order)
           if (sessionMatches(event.data.object, expected)) {
             order.depositPending = true
@@ -247,9 +272,10 @@ export function createApi() {
 
   app.post(
     '/api/orders',
+    requireUser,
     wrap(async (req, res) => {
       const { name, email, phone, siteType, message, locale, siteId, careId, careTerm, moduleIds } = req.body || {}
-      if (!name || !email || !message) {
+      if (!message) {
         res.status(400).json({ error: 'missing' })
         return
       }
@@ -267,14 +293,14 @@ export function createApi() {
       const order = await putOrder({
         id: uid(4),
         token: uid(16),
-        userId: req.user?.id || '',
+        userId: req.user.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         locale: locale === 'hu' ? 'hu' : 'en',
         status: 'enquiry',
         enquiry: {
-          name: name || req.user?.name || '',
-          email: email || req.user?.email || '',
+          name: String(name || req.user.name || '').trim(),
+          email: String(email || req.user.email || '').trim(),
           phone: phone || '',
           siteType: siteType || '',
           message,
@@ -421,7 +447,7 @@ export function createApi() {
     wrap(async (req, res) => {
       const order = req.order
       const kind = req.body?.kind === 'balance' ? 'balance' : 'deposit'
-      if (kind === 'deposit' && order.status !== 'ready') {
+      if (kind === 'deposit' && !canPayDeposit(order)) {
         res.status(409).json({ error: 'not ready' })
         return
       }
@@ -441,6 +467,8 @@ export function createApi() {
         return
       }
       const co = await getCompany()
+      const line = stripePaymentLine(order, kind, co)
+      const siteUrl = publicUrlForOrder(order)
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
         payment_method_types: ['card'],
@@ -453,14 +481,35 @@ export function createApi() {
               currency: isHuf(order) ? 'huf' : 'gbp',
               unit_amount: unitAmount,
               product_data: {
-                name: kind === 'balance' ? `${co.name} 80% ${order.id}` : `${co.name} deposit ${order.id}`,
+                name: line.name,
+                description: line.description,
               },
             },
           },
         ],
-        metadata: { token: order.token, id: order.id, kind },
-        success_url: `${PUBLIC_URL}/order/${order.token}/pay?paid=1`,
-        cancel_url: `${PUBLIC_URL}/order/${order.token}/pay`,
+        metadata: {
+          token: order.token,
+          id: order.id,
+          kind,
+          businessName: stripeClientName(order),
+          payment: kind === 'balance' ? '80%' : '20%',
+        },
+        payment_intent_data: {
+          description: line.name,
+          metadata: {
+            orderId: order.id,
+            businessName: stripeClientName(order),
+            payment: kind === 'balance' ? '80%' : '20%',
+          },
+        },
+        success_url:
+          kind === 'balance'
+            ? `${siteUrl}/order/${order.token}/pay?paid=1`
+            : `${siteUrl}/order/${order.token}/modules?paid=1`,
+        cancel_url:
+          kind === 'balance'
+            ? `${siteUrl}/order/${order.token}/pay`
+            : `${siteUrl}/order/${order.token}/modules`,
       })
       if (kind === 'balance') order.stripeBalanceSessionId = session.id
       else order.stripeSessionId = session.id
@@ -491,7 +540,7 @@ export function createApi() {
         return
       }
 
-      if (stripe && order.stripeSessionId && order.status === 'ready') {
+      if (stripe && order.stripeSessionId && canPayDeposit(order)) {
         const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId)
         if (sessionMatches(session, stripeAmount(order.totals.deposit, order))) {
           order.depositPending = true
@@ -514,7 +563,7 @@ export function createApi() {
     wrap(requireOrder),
     wrap(async (req, res) => {
       const order = req.order
-      if (!order || order.status !== 'ready') {
+      if (!canPayDeposit(order)) {
         res.status(409).json({ error: 'not ready' })
         return
       }
@@ -539,6 +588,21 @@ export function createApi() {
       const pdf = await contractPdf(order)
       res.setHeader('Content-Type', 'application/pdf')
       res.setHeader('Content-Disposition', `inline; filename="takemo-${order.id}-contract.pdf"`)
+      res.send(pdf)
+    }),
+  )
+
+  app.get(
+    '/api/orders/:token/deposit-invoice.pdf',
+    wrap(async (req, res) => {
+      const order = await getByToken(req.params.token)
+      if (!order || !order.paidAt) {
+        res.status(409).json({ error: 'not paid' })
+        return
+      }
+      const pdf = await depositInvoicePdf(order)
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', `inline; filename="takemo-${order.id}-deposit-invoice.pdf"`)
       res.send(pdf)
     }),
   )
@@ -613,16 +677,37 @@ export function createApi() {
     }),
   )
 
+  app.get(
+    '/api/admin/users',
+    wrap(requireAdmin),
+    wrap(async (_req, res) => {
+      res.json(await listUsers())
+    }),
+  )
+
   app.post(
-    '/api/admin/login',
+    '/api/admin/users/:id/admin',
+    wrap(requireAdmin),
     wrap(async (req, res) => {
-      if (req.body?.password !== ADMIN_PASSWORD) {
-        res.status(401).json({ error: 'password' })
+      const result = await setUserAdmin(req.params.id, req.body?.admin !== false)
+      if (result.error) {
+        res.status(404).json({ error: result.error })
         return
       }
-      const token = randomBytes(24).toString('hex')
-      await addAdminToken(token)
-      res.json({ token })
+      res.json(publicUser(result.user))
+    }),
+  )
+
+  app.delete(
+    '/api/admin/users/:id/admin',
+    wrap(requireAdmin),
+    wrap(async (req, res) => {
+      const result = await setUserAdmin(req.params.id, false)
+      if (result.error) {
+        res.status(404).json({ error: result.error })
+        return
+      }
+      res.json(publicUser(result.user))
     }),
   )
 
@@ -666,11 +751,11 @@ export function createApi() {
         notifyPreviewReady(order).catch((error) => {
           console.error('notify preview', error)
         })
-      } else if (action === 'confirm-deposit' && order.status === 'ready' && order.depositPending) {
+      } else if (action === 'confirm-deposit' && canPayDeposit(order) && order.depositPending) {
         order.status = 'paid'
         order.paidAt = new Date().toISOString()
         order.depositPending = false
-      } else if (action === 'paid' && order.status === 'ready' && !order.depositPending) {
+      } else if (action === 'paid' && canPayDeposit(order) && !order.depositPending) {
         order.status = 'paid'
         order.paidAt = new Date().toISOString()
         order.depositPending = false

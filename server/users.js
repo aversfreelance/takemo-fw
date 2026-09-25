@@ -49,6 +49,7 @@ function fromRow(row) {
     name: row.name,
     passwordHash: row.password_hash,
     googleId: row.google_id,
+    admin: Boolean(row.admin),
     createdAt: row.created_at,
   }
 }
@@ -57,13 +58,28 @@ export function isSuper(email) {
   return String(email || '').toLowerCase() === superEmail()
 }
 
+export function isAdminUser(user) {
+  return Boolean(user && (isSuper(user.email) || user.admin))
+}
+
 export function publicUser(user) {
   if (!user) return null
   return {
     id: user.id,
     email: user.email,
     name: user.name,
-    admin: isSuper(user.email),
+    admin: isAdminUser(user),
+  }
+}
+
+export function publicUserRow(user) {
+  if (!user) return null
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    admin: isAdminUser(user),
+    superuser: isSuper(user.email),
   }
 }
 
@@ -130,13 +146,14 @@ export async function registerUser({ name, email, password }) {
     name: String(name || clean).trim(),
     passwordHash: hashPassword(password),
     googleId: '',
+    admin: false,
     createdAt: new Date().toISOString(),
   }
   if (useNeon()) {
     const db = await sql()
     await db`
-      INSERT INTO users (id, email, name, password_hash, google_id)
-      VALUES (${user.id}, ${user.email}, ${user.name}, ${user.passwordHash}, ${user.googleId})
+      INSERT INTO users (id, email, name, password_hash, google_id, admin)
+      VALUES (${user.id}, ${user.email}, ${user.name}, ${user.passwordHash}, ${user.googleId}, ${false})
     `
     return { user, token: await createSession(user.id) }
   }
@@ -166,11 +183,12 @@ export async function upsertGoogleUser({ email, name, googleId }) {
         name: String(name || clean).trim(),
         passwordHash: '',
         googleId,
+        admin: false,
         createdAt: new Date().toISOString(),
       }
       await db`
-        INSERT INTO users (id, email, name, password_hash, google_id)
-        VALUES (${user.id}, ${user.email}, ${user.name}, ${user.passwordHash}, ${user.googleId})
+        INSERT INTO users (id, email, name, password_hash, google_id, admin)
+        VALUES (${user.id}, ${user.email}, ${user.name}, ${user.passwordHash}, ${user.googleId}, ${false})
       `
     } else if (!user.googleId) {
       await db`UPDATE users SET google_id = ${googleId} WHERE id = ${user.id}`
@@ -187,6 +205,7 @@ export async function upsertGoogleUser({ email, name, googleId }) {
       name: String(name || clean).trim(),
       passwordHash: '',
       googleId,
+      admin: false,
       createdAt: new Date().toISOString(),
     }
     data.users.push(user)
@@ -196,6 +215,37 @@ export async function upsertGoogleUser({ email, name, googleId }) {
     save(data)
   }
   return { user, token: await createSession(user.id) }
+}
+
+export async function listUsers() {
+  if (useNeon()) {
+    const db = await sql()
+    const rows = await db`SELECT id, email, name, admin FROM users ORDER BY email`
+    return rows.map((row) => publicUserRow(fromRow(row)))
+  }
+  return load()
+    .users.map((user) => publicUserRow(user))
+    .sort((a, b) => a.email.localeCompare(b.email))
+}
+
+export async function setUserAdmin(userId, admin) {
+  if (useNeon()) {
+    const db = await sql()
+    const rows = await db`SELECT * FROM users WHERE id = ${userId} LIMIT 1`
+    const user = fromRow(rows[0])
+    if (!user) return { error: 'missing' }
+    if (isSuper(user.email)) return { user }
+    await db`UPDATE users SET admin = ${Boolean(admin)} WHERE id = ${userId}`
+    user.admin = Boolean(admin)
+    return { user }
+  }
+  const data = load()
+  const user = data.users.find((item) => item.id === userId)
+  if (!user) return { error: 'missing' }
+  if (isSuper(user.email)) return { user }
+  user.admin = Boolean(admin)
+  save(data)
+  return { user }
 }
 
 export async function googleFromCredential(credential) {

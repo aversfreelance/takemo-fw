@@ -33,7 +33,7 @@ export function OrderPayPage() {
 
   if (error || !order) return <PageHero title={t.pay}>{t.needAccept}</PageHero>
 
-  async function pay(kind: 'deposit' | 'balance' = 'deposit') {
+  async function pay(kind: 'balance' = 'balance') {
     if (!order) return
     setBusy(true)
     setPayError(false)
@@ -58,7 +58,7 @@ export function OrderPayPage() {
         <div className="page-wrap max-w-3xl">
           <OrderSteps token={order.token} current="pay" />
           <div className={`mt-10 rounded-[18px] border-[3px] p-6 ${orderCardClass(order)}`}>
-            <PriceBox totals={order.totals} />
+            <PriceBox totals={order.totals} sticky={false} />
             {payError || payFailed ? <p className="mt-6 font-extrabold text-brand">{t.payFailed}</p> : null}
             {order.balancePaidAt ? (
               <p className="mt-6 text-xl font-extrabold">{t.paidFull}</p>
@@ -66,11 +66,6 @@ export function OrderPayPage() {
               <p className="mt-6 text-xl font-extrabold">{t.paymentPending}</p>
             ) : order.status === 'paid' || order.status === 'delivered' ? (
               <p className="mt-6 font-extrabold">{t.paid}</p>
-            ) : null}
-            {order.status === 'ready' && !order.depositPending ? (
-              <button type="button" className="btn-primary mt-8" disabled={busy} onClick={() => void pay()}>
-                {order.stripeEnabled ? t.payCard : t.demoPay}
-              </button>
             ) : null}
             {order.status === 'delivered' && order.balanceDue && !order.balancePaidAt && !order.balancePending ? (
               <button type="button" className="btn-primary mt-8" disabled={busy} onClick={() => void pay('balance')}>
@@ -96,7 +91,7 @@ export function OrderPayPage() {
                 ) : null}
               </div>
             ) : null}
-            {order.status !== 'ready' && order.status !== 'paid' && order.status !== 'delivered' ? (
+            {order.status !== 'paid' && order.status !== 'delivered' ? (
               <p className="mt-6 font-bold">{t.status[order.status]}</p>
             ) : null}
           </div>

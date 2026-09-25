@@ -2,10 +2,26 @@ import type { Order } from './api'
 
 const PAYMENT_DEADLINE_MS = 72 * 60 * 60 * 1000
 
+export function canPayDeposit(order: Order) {
+  return (order.status === 'review' || order.status === 'ready') && !order.paidAt
+}
+
+export function depositConfirmed(order: Order) {
+  return Boolean(order.paidAt)
+}
+
+export function awaitingDepositConfirm(order: Order) {
+  return Boolean(order.depositPending && !order.paidAt)
+}
+
+export function canPayBalance(order: Order) {
+  return order.status === 'delivered' && Boolean(order.balanceDue) && !order.balancePaidAt
+}
+
 export function paymentOverdue(order: Order) {
   const now = Date.now()
 
-  if (order.status === 'ready' && !order.paidAt && !order.depositPending) {
+  if (canPayDeposit(order) && !order.depositPending) {
     const start = new Date(order.readyAt || order.updatedAt).getTime()
     return now - start > PAYMENT_DEADLINE_MS
   }
@@ -24,7 +40,7 @@ export function orderCardClass(order: Order) {
   if (
     order.depositPending ||
     order.balancePending ||
-    order.status === 'ready' ||
+    canPayDeposit(order) ||
     (order.status === 'delivered' && order.balanceDue && !order.balancePaidAt)
   ) {
     return overdue ? 'border-brand bg-[#fee2e2]' : 'border-brand bg-white'
